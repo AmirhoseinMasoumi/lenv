@@ -1,0 +1,20 @@
+# VM artifacts — never commit these
+lenv-artifacts/
+*.qcow2
+*.iso
+*.vhdx
+
+# kernel/initrd blobs
+vmlinuz*
+initramfs*
+
+# lenv runtime state
+.lenv/
+
+# Go build output
+lenv.exe
+lenv
+
+# OS
+.DS_Store
+Thumbs.db
