@@ -18,13 +18,14 @@ dir, err := absProjectDir()
 if err != nil {
 return err
 }
-_ = fs.Stop(dir)
-_ = vm.Stop(dir)
-if err := os.RemoveAll(vm.StateDir(dir)); err != nil {
-return fmt.Errorf("remove .lenv: %w", err)
-}
-ui.Success("Destroyed .lenv state")
-return nil
+	_ = fs.Stop(dir)
+	_ = vm.Stop(dir)
+	if err := os.RemoveAll(vm.StateDir(dir)); err != nil {
+	return fmt.Errorf("remove .lenv: %w", err)
+	}
+	_ = vm.RemoveInstance(dir)
+	ui.Success("Destroyed .lenv state")
+	return nil
 },
 }
 

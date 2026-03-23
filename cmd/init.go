@@ -16,6 +16,7 @@ lssh "github.com/AmirhoseinMasoumi/lenv/ssh"
 )
 
 var noStart bool
+var initDistro string
 
 var initCmd = &cobra.Command{
 Use:   "init",
@@ -32,13 +33,27 @@ lt, err := config.Load(dir)
 if err != nil {
 return fmt.Errorf("load config: %w", err)
 }
+	if initDistro != "" {
+		lt.Env.Distro = initDistro
+	}
 	cfg, err := config.Resolve(lt)
 	if err != nil {
 		return fmt.Errorf("resolve config: %w", err)
 	}
+	if err := vm.EnsureDisk(cfg, dir); err != nil {
+		return fmt.Errorf("prepare rootfs disk: %w", err)
+	}
 	vm.ResolveKernelPath(cfg, dir)
 	if err := config.WriteResolved(vm.ConfigPath(dir), cfg); err != nil {
 		return fmt.Errorf("write resolved config: %w", err)
+	}
+	st := vm.GetStatus(dir)
+	if st.Running && st.SSHPort > 0 {
+		if client, err := lssh.WaitAndConnect(st.SSHPort, 10*time.Second); err == nil {
+			_ = client.Close()
+			ui.Success("Already running. Use `lenv shell` or `lenv run <cmd>`")
+			return nil
+		}
 	}
 port, err := vm.EnsurePort(dir)
 if err != nil {
@@ -49,10 +64,12 @@ ui.Success("Initialized .lenv state")
 return nil
 }
 
-	if err := fs.CheckInstalled(); err != nil {
-		return err
-	}
 	useVirtioFS := fs.Available() || runtime.GOOS != "windows"
+	if useVirtioFS {
+		if err := fs.CheckInstalled(); err != nil {
+			return err
+		}
+	}
 	if useVirtioFS {
 		ui.Step("Starting virtiofsd")
 		if err := fs.Start(dir); err != nil {
@@ -85,6 +102,7 @@ return nil
 func init() {
 	rootCmd.AddCommand(initCmd)
 	initCmd.Flags().BoolVar(&noStart, "no-start", false, "only prepare .lenv metadata and config")
+	initCmd.Flags().StringVar(&initDistro, "distro", "", "override distro for this init (alpine|ubuntu|debian|arch)")
 }
 
 func initSSHTimeout(_ string) time.Duration {

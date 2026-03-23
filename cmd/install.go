@@ -32,6 +32,9 @@ st := vm.GetStatus(dir)
 if st.SSHPort == 0 {
 return fmt.Errorf("VM not initialized; run `lenv init` first")
 }
+	if !st.Running {
+		return fmt.Errorf("VM is not running; run `lenv init` first")
+	}
 client, err := lssh.WaitAndConnect(st.SSHPort, 30*time.Second)
 if err != nil {
 return err
@@ -57,7 +60,7 @@ return "apk add --no-cache " + pkgs
 case "apt":
 return "apt update && apt install -y " + pkgs
 case "pacman":
-return "pacman -Sy --noconfirm " + pkgs
+return "pacman -Sy --noconfirm --needed " + pkgs
 default:
 return "echo unsupported package manager && false"
 }

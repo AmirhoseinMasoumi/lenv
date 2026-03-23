@@ -22,6 +22,9 @@ st := vm.GetStatus(dir)
 if st.SSHPort == 0 {
 return fmt.Errorf("VM not initialized; run `lenv init` first")
 }
+	if !st.Running {
+		return fmt.Errorf("VM is not running; run `lenv init` first")
+	}
 ui.Step("Connecting SSH")
 client, err := lssh.WaitAndConnect(st.SSHPort, 30*time.Second)
 if err != nil {

@@ -60,13 +60,18 @@ func Start(cfg *config.Config, projectDir string, sshPort int) error {
 		if err := cmd.Start(); err != nil {
 			return fmt.Errorf("start qemu: %w", err)
 		}
-		if err := os.WriteFile(PIDPath(projectDir), []byte(strconv.Itoa(cmd.Process.Pid)), 0o644); err != nil {
+		pid := cmd.Process.Pid
+		if err := os.WriteFile(PIDPath(projectDir), []byte(strconv.Itoa(pid)), 0o644); err != nil {
 			return fmt.Errorf("write qemu pid: %w", err)
 		}
+		_ = writeInstanceRecord(projectDir, cfg, sshPort, pid)
 		return nil
 	}
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("start qemu: %w (%s)", err, string(out))
+	}
+	if pid, err := readPID(projectDir); err == nil && pid > 0 {
+		_ = writeInstanceRecord(projectDir, cfg, sshPort, pid)
 	}
 	return nil
 }
@@ -74,32 +79,42 @@ func Start(cfg *config.Config, projectDir string, sshPort int) error {
 func Stop(projectDir string) error {
 b, err := os.ReadFile(PIDPath(projectDir))
 if err != nil {
+_ = removeInstanceRecord(projectDir)
 return nil
 }
 pid, err := strconv.Atoi(trimSpace(string(b)))
 if err != nil {
+_ = removeInstanceRecord(projectDir)
 return nil
 }
 proc, err := os.FindProcess(pid)
 if err != nil {
+_ = removeInstanceRecord(projectDir)
 return nil
 }
-return proc.Kill()
+ if err := proc.Kill(); err != nil {
+ return err
+ }
+ _ = removeInstanceRecord(projectDir)
+ return nil
 }
 
 type Status struct {
 Instance string
+ProjectDir string
+Accel    string
+Distro   string
 PID      int
 SSHPort  int
 Running  bool
 }
 
 func GetStatus(projectDir string) Status {
-s := Status{Instance: InstanceName(projectDir)}
+s := Status{Instance: InstanceName(projectDir), ProjectDir: projectDir}
 if b, err := os.ReadFile(PIDPath(projectDir)); err == nil {
 if p, e := strconv.Atoi(trimSpace(string(b))); e == nil {
 s.PID = p
-s.Running = p > 0
+s.Running = processRunning(p)
 }
 }
 if b, err := os.ReadFile(PortPath(projectDir)); err == nil {
@@ -108,6 +123,36 @@ s.SSHPort = p
 }
 }
 return s
+}
+
+func readPID(projectDir string) (int, error) {
+	b, err := os.ReadFile(PIDPath(projectDir))
+	if err != nil {
+		return 0, err
+	}
+	pid, err := strconv.Atoi(trimSpace(string(b)))
+	if err != nil {
+		return 0, err
+	}
+	return pid, nil
+}
+
+func processRunning(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+	if runtime.GOOS == "windows" {
+		out, err := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid)).CombinedOutput()
+		if err != nil {
+			return false
+		}
+		return strings.Contains(string(out), strconv.Itoa(pid))
+	}
+	out, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "pid=").CombinedOutput()
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(string(out)) != ""
 }
 
 func trimSpace(s string) string {
