@@ -28,7 +28,7 @@ var Registry = map[string]Distro{
 		KernelBlob:   "vmlinuz-alpine-3.19",
 		DefaultUser:  "root",
 		PkgManager:   "apk",
-		GuestSSHNote: "Requires OpenSSH enabled plus /etc/ssh/sshd_config entries: " +
+		GuestSSHNote: "Cloud-init should enforce OpenSSH and /etc/ssh/sshd_config entries: " +
 			"PermitRootLogin yes and PasswordAuthentication yes",
 	},
 	"ubuntu": {
@@ -41,7 +41,7 @@ var Registry = map[string]Distro{
 		KernelBlob:   "vmlinuz-ubuntu-24.04",
 		DefaultUser:  "ubuntu",
 		PkgManager:   "apt",
-		GuestSSHNote: "Root password SSH login is disabled by default; configure credentials before first run.",
+		GuestSSHNote: "Cloud-init should configure root SSH policy for automation on first boot.",
 	},
 	"debian": {
 		Name:         "debian",
@@ -53,19 +53,18 @@ var Registry = map[string]Distro{
 		KernelBlob:   "vmlinuz-debian-12",
 		DefaultUser:  "root",
 		PkgManager:   "apt",
-		GuestSSHNote: "Requires SSH service enabled with explicit login policy for automation.",
+		GuestSSHNote: "Cloud-init should configure SSH service and login policy for automation.",
 	},
 	"arch": {
 		Name:         "arch",
 		Version:      "latest",
 		RootFSURL:    "https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2",
-		ChecksumAlgo: "",
+		ChecksumAlgo: "", // TODO(v0.4+): wire official Arch checksum endpoint when stable
 		ChecksumURL:  "",
 		ChecksumFile: "",
 		KernelBlob:   "vmlinuz-arch",
 		DefaultUser:  "root",
 		PkgManager:   "pacman",
-		GuestSSHNote: "Requires SSH service enabled with password auth for lenv SSH bootstrap.",
+		GuestSSHNote: "Cloud-init should configure SSH policy and service for first boot automation.",
 	},
 }
-

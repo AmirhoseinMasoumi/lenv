@@ -1,7 +1,7 @@
 ﻿[![Go Version](https://img.shields.io/badge/go-1.23+-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/AmirhoseinMasoumi/Lenv/ci.yml?branch=master&label=build)](https://github.com/AmirhoseinMasoumi/lenv/actions)
-[![Release](https://img.shields.io/github/v/release/AmirhoseinMasoumi/Lenv)](https://github.com/AmirhoseinMasoumi/lenv/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/AmirhoseinMasoumi/lenv/ci.yml?branch=master&label=build)](https://github.com/AmirhoseinMasoumi/lenv/actions)
+[![Release](https://img.shields.io/github/v/release/AmirhoseinMasoumi/lenv)](https://github.com/AmirhoseinMasoumi/lenv/releases)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/AmirhoseinMasoumi/lenv)
 
 **`lenv` gives you instant per-project Linux VMs with auto rootfs download, zero global distro setup, and reproducible `lenv.toml` environments.**
@@ -91,7 +91,7 @@ brew install qemu
 #### Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AmirhoseinMasoumi/Lenv/master/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/AmirhoseinMasoumi/lenv/master/install.sh | sh
 ```
 
 #### QEMU
@@ -124,6 +124,7 @@ lenv init --distro alpine
 
 ```bash
 lenv run "uname -a"
+lenv run --env GOOS=linux --env CI=1 "env | grep -E 'GOOS|CI'"
 ```
 
 ```text
@@ -229,9 +230,48 @@ workspace = "/workspace"
 ## Roadmap
 
 - [x] **v0.1** Working `init/run/destroy`, rootfs auto-fetch, dynamic ports
-- [ ] **v0.2** Better usability: hardened shell/install/status UX
-- [ ] **v0.3** Shareable workflows: polished `lenv.toml` and distro matrix
-- [ ] **v0.4** Performance: acceleration wiring and warm-start snapshots
+- [x] **v0.2** Better usability: hardened shell/install/status UX, benchmark command
+- [x] **v0.3** Team workflows: full `lenv.toml`, snapshot sharing commands, env pass-through
+- [x] **v0.4** DX polish: completions, `exec`, `forward`, `vscode`, `update`, CI pipeline
+
+## VS Code Integration
+
+```bash
+lenv init
+lenv vscode
+```
+
+This writes `.vscode/settings.json` and `.vscode/ssh_config` for Remote SSH workflows.
+
+## Shell Completion
+
+```bash
+lenv completion bash > /etc/bash_completion.d/lenv
+lenv completion zsh > "${fpath[1]}/_lenv"
+lenv completion fish > ~/.config/fish/completions/lenv.fish
+lenv completion powershell > lenv.ps1
+```
+
+## Port Forwarding
+
+```bash
+lenv forward add 8080:8080
+lenv forward list
+lenv forward stop 8080
+```
+
+## Benchmark
+
+```bash
+lenv benchmark --runs 3
+```
+
+```text
+Benchmark (3 runs)
+avg boot time: 2.4s
+avg SSH connect time: 1.1s
+avg command RTT: 180ms
+```
 
 ## Built with
 

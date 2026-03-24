@@ -35,6 +35,9 @@ This document records implementation choices made autonomously for v0.2, v0.3, a
 7. **Snapshot restore strategy (v0.2)**  
    Because `LENV_DISK_PATH` may point to a user-owned image, automatic boot snapshot restore/save is skipped when disk path override is set.
 
+8. **v0.3 checksum source for Arch**  
+   Arch cloud image checksum endpoint is not stable in this environment. Implemented distro entry with explicit TODO marker and checksum skipped for Arch only.
+
 ## TODOs left intentionally
 
 - Arch checksum verification in distro metadata is marked TODO until a stable official checksum endpoint is integrated.
