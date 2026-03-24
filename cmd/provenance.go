@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -41,6 +42,26 @@ var provenanceCmd = &cobra.Command{
 				source = strings.TrimSpace(string(b))
 			}
 			fmt.Printf("%s: %s\n", base, source)
+		}
+		fmt.Println()
+		fmt.Println("[profile_trust_catalog]")
+		catalog := filepath.Join(dir, "trusted-sources.txt")
+		if _, err := os.Stat(catalog); err != nil {
+			fmt.Println("none")
+			return nil
+		}
+		f, err := os.Open(catalog)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		sc := bufio.NewScanner(f)
+		for sc.Scan() {
+			line := strings.TrimSpace(sc.Text())
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			fmt.Println(line)
 		}
 		return nil
 	},

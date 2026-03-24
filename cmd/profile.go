@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -229,10 +230,38 @@ func isTrustedProfileSource(src string) bool {
 	if strings.EqualFold(strings.TrimSpace(os.Getenv("LENV_PROFILE_TRUST_MODE")), "permissive") {
 		return true
 	}
+	for _, prefix := range readTrustedSourceCatalog() {
+		if strings.HasPrefix(src, prefix) {
+			return true
+		}
+	}
 	for prefix := range trustedProfileSources {
 		if strings.HasPrefix(src, prefix) {
 			return true
 		}
 	}
 	return false
+}
+
+func readTrustedSourceCatalog() []string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+	path := filepath.Join(home, ".lenv", "profiles", "trusted-sources.txt")
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	out := []string{}
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		out = append(out, line)
+	}
+	return out
 }

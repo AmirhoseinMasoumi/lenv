@@ -138,6 +138,12 @@ lenv profile remove ros2
 lenv init --profile ros2
 ```
 
+Trusted profile sources can also be managed with:
+
+```text
+~/.lenv/profiles/trusted-sources.txt
+```
+
 ### Community profile format
 
 ```toml
@@ -217,6 +223,12 @@ lenv provenance
 
 Prints runtime source/trust policy inputs and installed profile source metadata.
 
+## Release notes helper
+
+```bash
+lenv release-notes --version v0.6.0
+```
+
 ## VS Code and shell completion
 
 ```bash
@@ -238,6 +250,7 @@ lenv completion powershell > lenv.ps1
 - Rootfs downloads are checksum-verified.
 - Managed runtime artifacts are checksum-verified.
 - Profile checksums are enforced when `.sha256` files are present.
+- Trust policy can be tightened via runtime manifest requirements and profile source catalog.
 - VM state is scoped to `.lenv/` and teardown does not remove project source files.
 
 ## Roadmap

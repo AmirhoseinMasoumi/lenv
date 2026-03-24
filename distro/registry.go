@@ -59,9 +59,9 @@ var Registry = map[string]Distro{
 		Name:         "arch",
 		Version:      "latest",
 		RootFSURL:    "https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2",
-		ChecksumAlgo: "", // TODO(v0.4+): wire official Arch checksum endpoint when stable
-		ChecksumURL:  "",
-		ChecksumFile: "",
+		ChecksumAlgo: "sha256",
+		ChecksumURL:  "https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2.SHA256",
+		ChecksumFile: "Arch-Linux-x86_64-cloudimg.qcow2",
 		KernelBlob:   "vmlinuz-arch",
 		DefaultUser:  "root",
 		PkgManager:   "pacman",

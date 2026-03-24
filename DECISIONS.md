@@ -71,3 +71,9 @@ This document records implementation choices made autonomously for v0.2, v0.3, a
 
 18. **Trust and provenance foundations (v0.6)**
     Added runtime manifest signature verification hooks and provenance commands for runtime/profile source visibility.
+
+19. **Arch checksum completion**
+    Wired Arch image checksum validation using the official `.SHA256` endpoint for the selected cloud image.
+
+20. **Release operations ergonomics**
+    Added `lenv release-notes` command to standardize release note drafts directly from the CLI.
