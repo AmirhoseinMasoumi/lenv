@@ -91,7 +91,10 @@ func verifyProfileIntegrity(profilePath string) error {
 	b, err := os.ReadFile(checkPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			if strings.EqualFold(strings.TrimSpace(os.Getenv("LENV_PROFILE_REQUIRE_CHECKSUM")), "0") {
+				return nil
+			}
+			return fmt.Errorf("missing checksum file %s", filepath.Base(checkPath))
 		}
 		return err
 	}

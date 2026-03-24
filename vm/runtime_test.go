@@ -12,3 +12,16 @@ func TestManagedRuntimeURLsDefault(t *testing.T) {
 		t.Fatal("managedQEMUChecksumURL should not be empty")
 	}
 }
+
+func TestGetRuntimeStatus(t *testing.T) {
+	st, err := GetRuntimeStatus()
+	if err != nil {
+		t.Fatalf("GetRuntimeStatus failed: %v", err)
+	}
+	if st.RootDir == "" {
+		t.Fatal("expected non-empty runtime root")
+	}
+	if st.ManagedDir == "" {
+		t.Fatal("expected non-empty managed dir")
+	}
+}

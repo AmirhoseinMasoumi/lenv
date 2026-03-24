@@ -122,6 +122,35 @@ var profileInstallCmd = &cobra.Command{
 	},
 }
 
+var profileRemoveCmd = &cobra.Command{
+	Use:   "remove <name>",
+	Short: "Remove an installed local/community profile",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := strings.TrimSpace(args[0])
+		if name == "" {
+			return fmt.Errorf("profile name cannot be empty")
+		}
+		if _, ok := config.BuiltInProfile(name); ok {
+			return fmt.Errorf("cannot remove built-in profile %q", name)
+		}
+		dir, err := config.ProfileDir()
+		if err != nil {
+			return err
+		}
+		profilePath := filepath.Join(dir, name+".toml")
+		if err := os.Remove(profilePath); err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("profile %q not found", name)
+			}
+			return err
+		}
+		_ = os.Remove(profilePath + ".sha256")
+		fmt.Printf("Removed profile %s\n", name)
+		return nil
+	},
+}
+
 func completeProfiles(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	out := []string{"minimal", "usb", "audio", "embedded", "gpu", "full"}
 	dir, err := config.ProfileDir()
@@ -144,6 +173,7 @@ func completeProfiles(_ *cobra.Command, _ []string, _ string) ([]string, cobra.S
 func init() {
 	profileCmd.AddCommand(profileListCmd)
 	profileCmd.AddCommand(profileInstallCmd)
+	profileCmd.AddCommand(profileRemoveCmd)
 	rootCmd.AddCommand(profileCmd)
 }
 

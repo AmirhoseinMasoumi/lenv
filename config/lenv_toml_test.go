@@ -144,3 +144,40 @@ func TestLoadProfileChecksumMatchSucceeds(t *testing.T) {
 		t.Fatalf("expected profile load success, got: %v", err)
 	}
 }
+
+func TestLoadProfileMissingChecksumFailsByDefault(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+	pdir := filepath.Join(dir, ".lenv", "profiles")
+	if err := os.MkdirAll(pdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(pdir, "nocheck.toml")
+	profile := []byte("[profile]\nname=\"nocheck\"\nversion=\"1.0.0\"\n")
+	if err := os.WriteFile(p, profile, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadProfile("nocheck"); err == nil {
+		t.Fatal("expected missing checksum error")
+	}
+}
+
+func TestLoadProfileMissingChecksumCanBeAllowed(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+	t.Setenv("LENV_PROFILE_REQUIRE_CHECKSUM", "0")
+	pdir := filepath.Join(dir, ".lenv", "profiles")
+	if err := os.MkdirAll(pdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(pdir, "nocheck-ok.toml")
+	profile := []byte("[profile]\nname=\"nocheck-ok\"\nversion=\"1.0.0\"\n")
+	if err := os.WriteFile(p, profile, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadProfile("nocheck-ok"); err != nil {
+		t.Fatalf("expected profile load success, got: %v", err)
+	}
+}

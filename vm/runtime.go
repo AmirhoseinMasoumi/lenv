@@ -21,6 +21,14 @@ func runtimeQEMUDir() (string, error) {
 	return filepath.Join(home, ".lenv", "runtime", "qemu", runtime.GOOS+"-"+runtime.GOARCH), nil
 }
 
+type RuntimeStatus struct {
+	RootDir      string
+	ManagedDir   string
+	ManagedReady bool
+	QEMUPath     string
+	QEMUImgPath  string
+}
+
 func managedQEMUPath() (string, error) {
 	dir, err := runtimeQEMUDir()
 	if err != nil {
@@ -43,6 +51,58 @@ func managedQEMUImgPath() (string, error) {
 		name += ".exe"
 	}
 	return findBinaryRecursive(dir, name)
+}
+
+func GetRuntimeStatus() (RuntimeStatus, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return RuntimeStatus{}, err
+	}
+	root := filepath.Join(home, ".lenv", "runtime")
+	managedDir, err := runtimeQEMUDir()
+	if err != nil {
+		return RuntimeStatus{}, err
+	}
+	st := RuntimeStatus{
+		RootDir:    root,
+		ManagedDir: managedDir,
+	}
+	if p, err := managedQEMUPath(); err == nil {
+		st.ManagedReady = true
+		st.QEMUPath = p
+	}
+	if p, err := managedQEMUImgPath(); err == nil {
+		st.QEMUImgPath = p
+	}
+	return st, nil
+}
+
+func VerifyManagedRuntime() error {
+	st, err := GetRuntimeStatus()
+	if err != nil {
+		return err
+	}
+	if !st.ManagedReady {
+		return fmt.Errorf("managed runtime is not installed")
+	}
+	if st.QEMUPath == "" {
+		return fmt.Errorf("managed runtime missing qemu-system-x86_64")
+	}
+	if st.QEMUImgPath == "" {
+		return fmt.Errorf("managed runtime missing qemu-img")
+	}
+	return nil
+}
+
+func ClearManagedRuntime() error {
+	st, err := GetRuntimeStatus()
+	if err != nil {
+		return err
+	}
+	if err := os.RemoveAll(st.ManagedDir); err != nil {
+		return err
+	}
+	return nil
 }
 
 func ensureManagedQEMU() error {

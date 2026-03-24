@@ -56,3 +56,12 @@ This document records implementation choices made autonomously for v0.2, v0.3, a
 
 13. **Kernel config profile handling (v0.5.1)**  
     Added deterministic handling for profile kernel config requirements: write actionable TODO note by default; hard-fail when `LENV_KERNEL_REBUILD=1` is set.
+
+14. **Public release documentation standard (v0.5.1)**
+    Rewrote README to present lenv as a production tool with clear operational model, security posture, and release lifecycle.
+
+15. **Runtime operations maturity (v0.5.2)**
+    Added runtime management commands (`status`, `verify`, `clean`) so managed runtime lifecycle can be inspected and controlled by operators.
+
+16. **Profile lifecycle hardening (v0.5.2)**
+    Added `profile remove` and default checksum-required policy for external profiles to reduce supply-chain risk.

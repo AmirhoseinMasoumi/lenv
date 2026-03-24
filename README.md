@@ -134,6 +134,7 @@ Profiles allow optional capabilities (USB, audio, GPU, embedded tooling) without
 lenv profile list
 lenv init --profile usb --profile audio
 lenv profile install github.com/someone/lenv-profile-ros2
+lenv profile remove ros2
 lenv init --profile ros2
 ```
 
@@ -162,6 +163,7 @@ profile.toml.sha256
 ```
 
 When present, `lenv` verifies it automatically.
+By default, community/local installed profiles are expected to include checksum files.
 
 ## Zero-dependency runtime mode
 
@@ -186,7 +188,16 @@ LENV_QEMU_IMG_PATH=/custom/path/qemu-img
 LENV_QEMU_RUNTIME_URL=https://.../qemu-<os>-<arch>.zip
 LENV_QEMU_RUNTIME_SHA256_URL=https://.../qemu-<os>-<arch>.zip.sha256
 LENV_PROFILE_VERIFY=0
+LENV_PROFILE_REQUIRE_CHECKSUM=0
 LENV_KERNEL_REBUILD=1
+```
+
+## Runtime management commands
+
+```bash
+lenv runtime status
+lenv runtime verify
+lenv runtime clean
 ```
 
 ## VS Code and shell completion
@@ -219,7 +230,8 @@ lenv completion powershell > lenv.ps1
 - [x] v0.3: Team workflows and snapshot sharing
 - [x] v0.4: DX commands, completion, CI pipeline
 - [x] v0.5: Profile platform and zero-dependency runtime fallback
-- [ ] v0.5.2: Kernel rebuild pipeline for profile kernel config
+- [x] v0.5.2: Runtime management commands and profile lifecycle hardening
+- [ ] v0.5.3: Kernel rebuild pipeline for profile kernel config
 - [ ] v0.6: Signed runtime manifests and profile trust policies
 
 ## Contributing
