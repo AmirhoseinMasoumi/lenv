@@ -4,13 +4,15 @@
 [![Release](https://img.shields.io/github/v/release/AmirhoseinMasoumi/lenv)](https://github.com/AmirhoseinMasoumi/lenv/releases)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/AmirhoseinMasoumi/lenv)
 
-**`lenv` gives you instant per-project Linux VMs with auto rootfs + managed QEMU runtime download, zero global setup, and reproducible `lenv.toml` environments.**
+`lenv` is a production-ready CLI for reproducible, per-project Linux VM environments with zero-dependency runtime fallback and shareable project configuration.
 
 <!-- DEMO GIF HERE -->
 
-- `lenv` works per project, so you stop polluting one giant global Linux instance.
-- `lenv` runs on Windows Home and non-Windows hosts; WSL2 does not.
-- `lenv` bootstraps from config and image metadata automatically, not manual distro install steps.
+## Why teams use lenv
+
+- **Per-project isolation by default**: each repository gets its own Linux runtime and state.
+- **Zero-dependency default path**: if QEMU is not installed, `lenv` can provision a managed runtime automatically.
+- **Shareable environments**: commit `lenv.toml` and optional profiles so every contributor runs the same environment.
 
 ## Quick Start
 
@@ -20,291 +22,122 @@ lenv init --distro alpine
 lenv run "uname -a"
 ```
 
-No manual QEMU install is required in the default flow. If `qemu-system-x86_64` is not on `PATH`, `lenv` downloads and verifies a managed runtime automatically.
+No manual QEMU installation is required in the default flow.
 
-## Why lenv
+## Feature comparison
 
 | Feature | lenv | WSL2 | Docker Desktop | Vagrant |
 |---|---|---|---|---|
-| Windows Home support | Yes | Limited / Hyper-V constraints | Yes | Yes |
+| Windows Home support | Yes | Limited | Yes | Yes |
 | macOS support | Yes | No | Yes | Yes |
-| Per-project isolation | Native | No | Container-scoped | Manual |
-| No admin required | Typical flow | Often required | Often required | Varies |
-| Auto rootfs download | Yes | No | Yes (images) | No |
-| Shareable `lenv.toml` | Yes | No | Different model | Vagrantfile only |
-| Cold start time | Fast (seconds) | Fast | Medium | Slow |
-| File I/O speed | Fast local VM disk; shared fs depends on backend | Good in Linux FS, slower on mounted Windows paths | Varies by mount driver | Varies |
-
-## Features
-
-- **`lenv init`**: Creates and boots a Linux VM for the current project with automatic rootfs provisioning.
-- **`lenv shell`**: Opens an interactive shell session directly inside your project VM.
-- **`lenv run`**: Executes a command in Linux and streams output back to your host terminal.
-- **`lenv install`**: Installs packages via `apk`, `apt`, or `pacman` based on distro.
-- **`lenv snapshot`**: Saves and restores reusable VM disk snapshots.
-- **`lenv destroy`**: Stops VM processes and removes `.lenv` state without touching project files.
-- **`lenv status`**: Shows currently running `lenv` VM instances and connection info.
+| Per-project VM isolation | Native | No | Container model | Manual |
+| Zero-dependency default | Yes (managed runtime fallback) | No | No | No |
+| Auto rootfs download | Yes | No | Image pull model | No |
+| Shareable project config | `lenv.toml` | No | Different model | `Vagrantfile` |
 
 ## Installation
 
-### Windows
+### Standard install
 
-#### winget
-
-```powershell
-winget install AmirhoseinMasoumi.lenv
+```bash
+go install github.com/AmirhoseinMasoumi/lenv@latest
 ```
 
-#### Manual
+### Optional host-managed QEMU
+
+If you prefer system QEMU over managed runtime fallback:
 
 ```powershell
-# Download latest lenv.exe from Releases and place in PATH
-```
-
-#### Optional: system QEMU
-
-```powershell
+# Windows
 winget install QEMU.QEMU
 ```
 
-Use this only if you want a host-managed runtime. Otherwise, `lenv` auto-installs a managed runtime under `~/.lenv/runtime/`.
-
-### macOS
-
-#### Homebrew
-
 ```bash
-brew tap amirhoseinmasoumi/tap
-brew install lenv
-```
-
-#### Manual
-
-```bash
-# Download binary from Releases and move to /usr/local/bin or ~/.local/bin
-```
-
-#### Optional: system QEMU
-
-```bash
+# macOS
 brew install qemu
 ```
-
-Use this only if you want a host-managed runtime. Otherwise, `lenv` auto-installs a managed runtime under `~/.lenv/runtime/`.
-
-### Linux
-
-#### Install
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/AmirhoseinMasoumi/lenv/master/install.sh | sh
-```
-
-#### Optional: system QEMU
 
 ```bash
 # Debian/Ubuntu
 sudo apt-get update && sudo apt-get install -y qemu-system-x86 qemu-utils
 ```
 
-Use this only if you want a host-managed runtime. Otherwise, `lenv` auto-installs a managed runtime under `~/.lenv/runtime/`.
+## Core commands
 
-## Usage
-
-### Initialize a project VM
+### Initialize environment
 
 ```bash
-lenv init --distro alpine
+lenv init --distro ubuntu
 ```
 
-```text
-[..] Fetching rootfs for alpine
-[DONE] checksum verified
-[DONE] rootfs ready
-[..] Starting QEMU
-[DONE] VM started
-[..] Waiting for SSH
-[DONE] VM ready
-[OK] Ready. Run `lenv shell` or `lenv run <cmd>`
-```
-
-### Run a command inside Linux
+### Run commands
 
 ```bash
-lenv run "uname -a"
-lenv run --env GOOS=linux --env CI=1 "env | grep -E 'GOOS|CI'"
+lenv run "go test ./..."
+lenv run --env CI=1 --env GOOS=linux "env | grep -E 'CI|GOOS'"
 ```
 
-```text
-[INFO] Running: uname -a
-Linux lenv 6.x.x #1 SMP x86_64 Linux
-```
-
-### Open an interactive shell
+### Interactive shell
 
 ```bash
 lenv shell
 ```
 
-```text
-root@lenv:/workspace#
-```
-
-### Install packages
+### Install guest packages
 
 ```bash
 lenv install git curl build-base
 ```
 
-```text
-[INFO] Running package install in VM
-```
-
-### Snapshot the VM
-
-```bash
-lenv snapshot save base-toolchain
-lenv snapshot restore base-toolchain
-```
-
-### Check status
+### VM lifecycle
 
 ```bash
 lenv status
-```
-
-```text
-Instance: lenv-myproject-a1b2c3d4
-Project: /path/to/myproject
-Running: true
-PID: 12345
-SSH Port: 3471
-```
-
-### Destroy the environment
-
-```bash
+lenv snapshot save baseline
+lenv snapshot restore baseline
 lenv destroy
 ```
 
-```text
-[OK] Destroyed .lenv state
-```
-
-## `lenv.toml`
-
-```toml
-# Runtime environment settings
-[env]
-distro  = "alpine"    # alpine | ubuntu | debian | arch
-version = "3.19"      # distro version hint
-cpus    = 2           # VM vCPU count
-memory  = "2G"        # VM memory
-profiles = ["minimal"] # optional profile stack (minimal|usb|audio|embedded|gpu|full or installed custom)
-
-# Packages to install (optional workflow convention)
-[packages]
-install = [
-  "git",
-  "curl",
-  "build-base",
-]
-
-# Workspace mount location inside guest
-[mount]
-workspace = "/workspace"
-```
-
-## How It Works
-
-```text
-+--------------------+      +------------------+      +-------------------+
-| Windows/macOS/Linux| ---> | lenv CLI (Go)    | ---> | QEMU VM lifecycle |
-| terminal           |      | command handlers |      | + port management |
-+--------------------+      +------------------+      +---------+---------+
-                                                                 |
-                                                                 v
-                                                      +---------------------+
-                                                      | Linux guest VM      |
-                                                      | cloud-init firstboot|
-                                                      +---------+-----------+
-                                                                |
-                                                                v
-                                                      +---------------------+
-                                                      | /workspace mount     |
-                                                      | project files host   |
-                                                      +---------------------+
-```
-
-## Roadmap
-
-- [x] **v0.1** Working `init/run/destroy`, rootfs auto-fetch, dynamic ports
-- [x] **v0.2** Better usability: hardened shell/install/status UX, benchmark command
-- [x] **v0.3** Team workflows: full `lenv.toml`, snapshot sharing commands, env pass-through
-- [x] **v0.4** DX polish: completions, `exec`, `forward`, `vscode`, `update`, CI pipeline
-- [x] **v0.5 (foundation)** Profile system for optional VM capabilities and community extensions
-
-## VS Code Integration
-
-```bash
-lenv init
-lenv vscode
-```
-
-This writes `.vscode/settings.json` and `.vscode/ssh_config` for Remote SSH workflows.
-
-## Shell Completion
-
-```bash
-lenv completion bash > /etc/bash_completion.d/lenv
-lenv completion zsh > "${fpath[1]}/_lenv"
-lenv completion fish > ~/.config/fish/completions/lenv.fish
-lenv completion powershell > lenv.ps1
-```
-
-## Port Forwarding
-
-```bash
-lenv forward add 8080:8080
-lenv forward list
-lenv forward stop 8080
-```
-
-## Profiles
-
-```bash
-lenv profile list
-lenv init --profile usb --profile audio
-lenv profile install github.com/someone/lenv-profile-cuda
-```
-
-Profiles keep the default VM lean while enabling optional capabilities per project.
-
-Built-in profiles:
-
-- `minimal`: baseline runtime profile (default behavior).
-- `usb`: USB controller args plus USB tooling packages.
-- `audio`: virtual audio device args plus ALSA tooling.
-- `embedded`: serial/OpenOCD-focused setup for firmware development.
-- `gpu`: virtio GPU device wiring.
-- `full`: combined compatibility profile with common extras.
-
-Project-level reproducibility:
+## Project configuration (`lenv.toml`)
 
 ```toml
 [env]
 distro = "ubuntu"
+version = "24.04"
+cpus = 4
+memory = "4G"
 profiles = ["embedded", "usb"]
+
+[packages]
+install = ["git", "curl", "build-essential"]
+
+[mount]
+workspace = "/workspace"
 ```
 
-Community profile workflow:
+## Profile system (platform model)
+
+Profiles allow optional capabilities (USB, audio, GPU, embedded tooling) without bloating the default environment.
+
+### Built-in profiles
+
+- `minimal`
+- `usb`
+- `audio`
+- `embedded`
+- `gpu`
+- `full`
+
+### Profile operations
 
 ```bash
+lenv profile list
+lenv init --profile usb --profile audio
 lenv profile install github.com/someone/lenv-profile-ros2
 lenv init --profile ros2
 ```
 
-Community profile format (`profile.toml`):
+### Community profile format
 
 ```toml
 [profile]
@@ -322,72 +155,83 @@ config = ["CONFIG_USB=y", "CONFIG_USB_XHCI_HCD=y"]
 install = ["usbutils", "libusb"]
 ```
 
-Optional integrity file (`profile.toml.sha256`) is supported and verified automatically when present.
+Optional integrity file:
 
-Activation model:
+```text
+profile.toml.sha256
+```
 
-1. Load base config from defaults and `lenv.toml`.
-2. Merge selected profile QEMU arguments.
-3. Boot VM with merged runtime flags.
-4. Apply profile package installs after SSH is ready.
+When present, `lenv` verifies it automatically.
 
-## Zero Dependency Runtime Mode
+## Zero-dependency runtime mode
 
-`lenv` prefers host QEMU when available, then falls back to a managed runtime download.
+Runtime resolution order:
 
-Resolution order:
-
-1. `LENV_QEMU_PATH` (explicit binary path)
+1. `LENV_QEMU_PATH`
 2. `qemu-system-x86_64` from `PATH`
-3. Managed runtime in `~/.lenv/runtime/qemu/<os>-<arch>/`
-4. Auto-download managed runtime and verify SHA256
+3. Managed runtime cache
+4. Managed runtime auto-download + SHA256 verification
 
-Managed runtime location:
+Managed runtime cache:
 
 ```text
 ~/.lenv/runtime/qemu/<os>-<arch>/
 ```
 
-Relevant environment variables:
+Related environment variables:
 
 ```bash
 LENV_QEMU_PATH=/custom/path/qemu-system-x86_64
 LENV_QEMU_IMG_PATH=/custom/path/qemu-img
 LENV_QEMU_RUNTIME_URL=https://.../qemu-<os>-<arch>.zip
 LENV_QEMU_RUNTIME_SHA256_URL=https://.../qemu-<os>-<arch>.zip.sha256
-LENV_PROFILE_VERIFY=0   # disable profile checksum verification
-LENV_KERNEL_REBUILD=1   # hard-fail when profile requires kernel config
+LENV_PROFILE_VERIFY=0
+LENV_KERNEL_REBUILD=1
 ```
 
-## Benchmark
+## VS Code and shell completion
 
 ```bash
-lenv benchmark --runs 3
+lenv vscode
+lenv completion bash > /etc/bash_completion.d/lenv
+lenv completion zsh > "${fpath[1]}/_lenv"
+lenv completion fish > ~/.config/fish/completions/lenv.fish
+lenv completion powershell > lenv.ps1
 ```
 
-```text
-Benchmark (3 runs)
-avg boot time: 2.4s
-avg SSH connect time: 1.1s
-avg command RTT: 180ms
-```
+## CI/CD and release model
 
-## Built with
+- CI runs `go build ./...`, `go test ./...`, and `go vet ./...` on push.
+- Tagged releases produce binaries for Windows, Linux, and macOS targets.
+- Versioned tags are the source of truth for released artifacts.
 
-- [Go](https://go.dev/)
-- [QEMU](https://www.qemu.org/)
-- [cloud-init](https://cloud-init.io/)
+## Security and reliability notes
+
+- Rootfs downloads are checksum-verified.
+- Managed runtime artifacts are checksum-verified.
+- Profile checksums are enforced when `.sha256` files are present.
+- VM state is scoped to `.lenv/` and teardown does not remove project source files.
+
+## Roadmap
+
+- [x] v0.1: Init/run/destroy with rootfs auto-fetch
+- [x] v0.2: Acceleration and boot optimization
+- [x] v0.3: Team workflows and snapshot sharing
+- [x] v0.4: DX commands, completion, CI pipeline
+- [x] v0.5: Profile platform and zero-dependency runtime fallback
+- [ ] v0.5.2: Kernel rebuild pipeline for profile kernel config
+- [ ] v0.6: Signed runtime manifests and profile trust policies
 
 ## Contributing
 
-Contributions are welcome. Open an issue, discuss your approach, then send a PR.
+Contributions are welcome. Please open an issue or pull request with reproducible details.
 
 ```bash
 go build ./...
 go test ./...
+go vet ./...
 ```
 
 ## License
 
 MIT
-
