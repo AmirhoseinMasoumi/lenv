@@ -32,3 +32,4 @@ Accel      string
 KernelPath string
 PkgManager string
 }
+

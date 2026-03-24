@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AmirhoseinMasoumi/lenv/config"
-	"github.com/AmirhoseinMasoumi/lenv/fs"
+	"github.com/AmirhoseinMasoumi/Lenv/config"
+	"github.com/AmirhoseinMasoumi/Lenv/fs"
 )
 
 func BuildArgs(cfg *config.Config, projectDir string, sshPort int) []string {
@@ -93,3 +93,4 @@ func ConfigPath(projectDir string) string { return filepath.Join(StateDir(projec
 func SeedISOPath(projectDir string) string {
 	return filepath.Join(StateDir(projectDir), "seed.iso")
 }
+

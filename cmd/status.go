@@ -3,7 +3,7 @@ package cmd
 import (
 "fmt"
 
-"github.com/AmirhoseinMasoumi/lenv/vm"
+"github.com/AmirhoseinMasoumi/Lenv/vm"
 "github.com/spf13/cobra"
 )
 
@@ -28,3 +28,4 @@ RunE: func(cmd *cobra.Command, args []string) error {
 }
 
 func init() { rootCmd.AddCommand(statusCmd) }
+

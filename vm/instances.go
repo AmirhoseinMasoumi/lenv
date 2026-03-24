@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/AmirhoseinMasoumi/lenv/config"
+	"github.com/AmirhoseinMasoumi/Lenv/config"
 	"github.com/BurntSushi/toml"
 )
 
@@ -110,3 +110,4 @@ func ListRunningStatuses() ([]Status, error) {
 	sort.Slice(statuses, func(i, j int) bool { return statuses[i].Instance < statuses[j].Instance })
 	return statuses, nil
 }
+

@@ -40,3 +40,4 @@ if _, err := os.Stat(path); err != nil {
 t.Fatalf("expected file to exist: %v", err)
 }
 }
+

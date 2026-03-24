@@ -5,9 +5,9 @@ import (
 "strings"
 "time"
 
-"github.com/AmirhoseinMasoumi/lenv/config"
-lssh "github.com/AmirhoseinMasoumi/lenv/ssh"
-"github.com/AmirhoseinMasoumi/lenv/vm"
+"github.com/AmirhoseinMasoumi/Lenv/config"
+lssh "github.com/AmirhoseinMasoumi/Lenv/ssh"
+"github.com/AmirhoseinMasoumi/Lenv/vm"
 "github.com/spf13/cobra"
 )
 
@@ -67,3 +67,4 @@ return "echo unsupported package manager && false"
 }
 
 func init() { rootCmd.AddCommand(installCmd) }
+

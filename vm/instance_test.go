@@ -10,3 +10,4 @@ if a != b {
 t.Fatalf("expected deterministic name, got %q and %q", a, b)
 }
 }
+

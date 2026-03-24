@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AmirhoseinMasoumi/lenv/config"
+	"github.com/AmirhoseinMasoumi/Lenv/config"
 )
 
 func EnsureState(projectDir string) error {
@@ -212,3 +212,4 @@ func useDirectKernelBoot(cfg *config.Config) bool {
 	}
 	return true
 }
+

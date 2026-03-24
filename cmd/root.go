@@ -28,3 +28,4 @@ rootCmd.PersistentFlags().StringVar(&projectDir, "project-dir", cwd, "project di
 }
 
 func absProjectDir() (string, error) { return filepath.Abs(projectDir) }
+

@@ -11,3 +11,4 @@ hash := sha256.Sum256([]byte(projectDir))
 base := filepath.Base(projectDir)
 return fmt.Sprintf("lenv-%s-%x", base, hash[:4])
 }
+

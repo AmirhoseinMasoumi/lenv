@@ -11,3 +11,4 @@ func Warn(msg string) { fmt.Println("[WARN] " + msg) }
 func Error(msg string) { fmt.Fprintln(os.Stderr, "[ERROR] "+msg) }
 func Step(msg string) { fmt.Println("[..] " + msg) }
 func Done(msg string) { fmt.Println("[DONE] " + msg) }
+

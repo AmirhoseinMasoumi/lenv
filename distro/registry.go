@@ -68,3 +68,4 @@ var Registry = map[string]Distro{
 		GuestSSHNote: "Requires SSH service enabled with password auth for lenv SSH bootstrap.",
 	},
 }
+

@@ -57,3 +57,4 @@ func terminalSize() (int, int) {
 	}
 	return w, h
 }
+

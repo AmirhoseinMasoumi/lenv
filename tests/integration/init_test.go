@@ -54,3 +54,4 @@ func runGoCommand(t *testing.T, repoRoot string, env []string, args ...string) s
 	}
 	return out.String()
 }
+

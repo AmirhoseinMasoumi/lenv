@@ -37,3 +37,4 @@ return fmt.Errorf("encode resolved config: %w", err)
 }
 return nil
 }
+

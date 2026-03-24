@@ -34,3 +34,4 @@ func CheckInstalled() error {
 
 	return fmt.Errorf("WinFsp not found; set LENV_WINFSP_DIR to WinFsp bin dir or install from https://winfsp.dev")
 }
+
