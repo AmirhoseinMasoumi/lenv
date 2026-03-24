@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,9 +54,12 @@ var provenanceCmd = &cobra.Command{
 			ui.KV("Trusted source", prefix)
 		}
 		ui.KV("Local", "")
-		if _, err := os.Stat(catalog); err != nil {
-			ui.Info("none")
-			return nil
+		if _, statErr := os.Stat(catalog); statErr != nil {
+			if os.IsNotExist(statErr) {
+				ui.Info("none")
+				return nil
+			}
+			return fmt.Errorf("access trusted catalog: %w", statErr)
 		}
 		f, err := os.Open(catalog)
 		if err != nil {

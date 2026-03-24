@@ -309,6 +309,9 @@ func fetchHTTPBytes(url string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
+// extractZip extracts a zip archive to the destination directory.
+// It includes protection against zip slip attacks by validating that
+// extracted paths don't escape the destination directory.
 func extractZip(zipPath, dst string) error {
 	r, err := zip.OpenReader(zipPath)
 	if err != nil {
@@ -361,13 +364,26 @@ func downloadFile(url, out string) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("download failed: %s", resp.Status)
 	}
+	// Ensure parent directory exists
+	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
+		return fmt.Errorf("create download directory: %w", err)
+	}
 	f, err := os.Create(out)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	_, err = io.Copy(f, resp.Body)
-	return err
+	if _, err := io.Copy(f, resp.Body); err != nil {
+		_ = f.Close()
+		_ = os.Remove(out)
+		return err
+	}
+	// Sync to ensure data is flushed to disk before closing
+	if err := f.Sync(); err != nil {
+		_ = f.Close()
+		_ = os.Remove(out)
+		return err
+	}
+	return f.Close()
 }
 
 func findBinaryRecursive(root, name string) (string, error) {

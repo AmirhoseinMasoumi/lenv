@@ -49,8 +49,14 @@ func windowsExcludedPorts() (map[int]bool, error) {
 		if len(m) != 3 {
 			continue
 		}
-		start, _ := strconv.Atoi(m[1])
-		end, _ := strconv.Atoi(m[2])
+		start, err := strconv.Atoi(m[1])
+		if err != nil {
+			continue
+		}
+		end, err := strconv.Atoi(m[2])
+		if err != nil {
+			continue
+		}
 		for p := start; p <= end; p++ {
 			excluded[p] = true
 		}

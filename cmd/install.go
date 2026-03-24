@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -50,7 +51,10 @@ var installCmd = &cobra.Command{
 			return fmt.Errorf("package install failed with exit code %d", exitCode)
 		}
 		cfg.InstalledPackages = mergePackages(cfg.InstalledPackages, args)
-		_ = config.WriteResolved(vm.ConfigPath(dir), cfg)
+		if err := config.WriteResolved(vm.ConfigPath(dir), cfg); err != nil {
+			// Don't fail the command, but warn the user that config wasn't persisted
+			fmt.Fprintf(os.Stderr, "warning: failed to persist package list: %v\n", err)
+		}
 		return nil
 	},
 }

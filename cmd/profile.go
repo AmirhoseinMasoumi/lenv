@@ -253,6 +253,7 @@ var profileRemoveCmd = &cobra.Command{
 			return err
 		}
 		_ = os.Remove(profilePath + ".sha256")
+		_ = os.Remove(profilePath + ".source")
 		ui.KV("Profile", name)
 		ui.Success("Profile removed.")
 		return nil

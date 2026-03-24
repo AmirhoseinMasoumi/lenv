@@ -20,7 +20,10 @@ var snapshotSaveCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ui.Title("lenv snapshot save")
-		dir, _ := absProjectDir()
+		dir, err := absProjectDir()
+		if err != nil {
+			return err
+		}
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return err
@@ -47,7 +50,10 @@ var snapshotRestoreCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ui.Title("lenv snapshot restore")
-		dir, _ := absProjectDir()
+		dir, err := absProjectDir()
+		if err != nil {
+			return err
+		}
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return err

@@ -65,7 +65,10 @@ type ghAsset struct {
 }
 
 func latestRelease() (*ghRelease, error) {
-	req, _ := http.NewRequest(http.MethodGet, "https://api.github.com/repos/AmirhoseinMasoumi/lenv/releases/latest", nil)
+	req, err := http.NewRequest(http.MethodGet, "https://api.github.com/repos/AmirhoseinMasoumi/lenv/releases/latest", nil)
+	if err != nil {
+		return nil, fmt.Errorf("create release request: %w", err)
+	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
