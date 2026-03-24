@@ -27,5 +27,10 @@ func Validate(lt *LenvToml) error {
 			return fmt.Errorf("packages.install[%d] cannot be empty", i)
 		}
 	}
+	for i, name := range lt.Env.Profiles {
+		if strings.TrimSpace(name) == "" {
+			return fmt.Errorf("env.profiles[%d] cannot be empty", i)
+		}
+	}
 	return nil
 }

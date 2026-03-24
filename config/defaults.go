@@ -36,6 +36,7 @@ func Resolve(lt *LenvToml) (*Config, error) {
 		Memory:     firstNonEmpty(lt.Env.Memory, d.Memory),
 		Workspace:  firstNonEmpty(lt.Mount.Workspace, d.Workspace),
 		Packages:   lt.Packages.Install,
+		Profiles:   append([]string{}, lt.Env.Profiles...),
 		KernelPath: d.KernelPath,
 		PkgManager: d.PkgManager,
 	}

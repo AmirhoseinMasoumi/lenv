@@ -192,6 +192,7 @@ distro  = "alpine"    # alpine | ubuntu | debian | arch
 version = "3.19"      # distro version hint
 cpus    = 2           # VM vCPU count
 memory  = "2G"        # VM memory
+profiles = ["minimal"] # optional profile stack (minimal|usb|audio|embedded|gpu|full or installed custom)
 
 # Packages to install (optional workflow convention)
 [packages]
@@ -258,6 +259,14 @@ lenv completion powershell > lenv.ps1
 lenv forward add 8080:8080
 lenv forward list
 lenv forward stop 8080
+```
+
+## Profiles
+
+```bash
+lenv profile list
+lenv init --profile usb --profile audio
+lenv profile install github.com/someone/lenv-profile-cuda
 ```
 
 ## Benchmark

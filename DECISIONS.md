@@ -41,3 +41,9 @@ This document records implementation choices made autonomously for v0.2, v0.3, a
 ## TODOs left intentionally
 
 - Arch checksum verification in distro metadata is marked TODO until a stable official checksum endpoint is integrated.
+
+9. **Profile extensibility model (v0.5 groundwork)**  
+   Implemented profile stacking via `--profile` and `[env].profiles`, merging extra QEMU args and package installs without changing base VM lifecycle.
+
+10. **Community profile distribution**  
+    Added `lenv profile install` supporting GitHub repo convention (`github.com/<owner>/lenv-profile-<name>` -> `raw/main/profile.toml`) and local TOML installs.

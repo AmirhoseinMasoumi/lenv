@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/AmirhoseinMasoumi/lenv/config"
@@ -19,6 +20,7 @@ import (
 var noStart bool
 var initDistro string
 var saveConfig bool
+var initProfiles []string
 
 var initCmd = &cobra.Command{
 	Use:   "init",
@@ -40,6 +42,9 @@ var initCmd = &cobra.Command{
 				initDistro = "alpine"
 			}
 			lt.Env.Distro = initDistro
+			if len(initProfiles) > 0 {
+				lt.Env.Profiles = append([]string{}, initProfiles...)
+			}
 			if err := config.Save(filepath.Join(dir, "lenv.toml"), lt); err != nil {
 				return fmt.Errorf("save lenv.toml: %w", err)
 			}
@@ -48,9 +53,17 @@ var initCmd = &cobra.Command{
 		if initDistro != "" {
 			lt.Env.Distro = initDistro
 		}
+		selectedProfiles := lt.Env.Profiles
+		if len(initProfiles) > 0 {
+			selectedProfiles = initProfiles
+		}
 		cfg, err := config.Resolve(lt)
 		if err != nil {
 			return fmt.Errorf("resolve config: %w", err)
+		}
+		basePackages := append([]string{}, cfg.Packages...)
+		if err := config.ApplyProfiles(cfg, selectedProfiles); err != nil {
+			return fmt.Errorf("apply profiles: %w", err)
 		}
 		if err := vm.EnsureDisk(cfg, dir); err != nil {
 			return fmt.Errorf("prepare rootfs disk: %w", err)
@@ -107,7 +120,23 @@ var initCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("waiting for VM readiness: %w", err)
 		}
-		_ = client.Close()
+		defer client.Close()
+		profilePackages := diffPackages(cfg.Packages, basePackages)
+		if len(profilePackages) > 0 {
+			pkgs := strings.Join(profilePackages, " ")
+			installLine := packageInstallCommand(cfg.PkgManager, pkgs)
+			exitCode, err := lssh.Exec(client, installLine)
+			if err != nil {
+				return fmt.Errorf("apply profile packages: %w", err)
+			}
+			if exitCode != 0 {
+				return fmt.Errorf("profile package install failed with exit code %d", exitCode)
+			}
+			cfg.InstalledPackages = mergePackages(cfg.InstalledPackages, profilePackages)
+			if err := config.WriteResolved(vm.ConfigPath(dir), cfg); err != nil {
+				return fmt.Errorf("persist resolved config: %w", err)
+			}
+		}
 		if err := vm.EnsureBootSnapshot(dir); err != nil {
 			ui.Warn("snapshot save skipped: " + err.Error())
 		}
@@ -122,6 +151,7 @@ func init() {
 	initCmd.Flags().BoolVar(&noStart, "no-start", false, "only prepare .lenv metadata and config")
 	initCmd.Flags().StringVar(&initDistro, "distro", "", "override distro for this init (alpine|ubuntu|debian|arch)")
 	initCmd.Flags().BoolVar(&saveConfig, "save", false, "write selected settings to lenv.toml")
+	initCmd.Flags().StringArrayVar(&initProfiles, "profile", nil, "activate profile(s), e.g. --profile usb --profile audio")
 }
 
 func initSSHTimeout(_ string) time.Duration {
@@ -131,4 +161,20 @@ func initSSHTimeout(_ string) time.Duration {
 		}
 	}
 	return 120 * time.Second
+}
+
+func diffPackages(all, base []string) []string {
+	baseSet := map[string]bool{}
+	for _, p := range base {
+		baseSet[strings.TrimSpace(p)] = true
+	}
+	out := []string{}
+	for _, p := range all {
+		p = strings.TrimSpace(p)
+		if p == "" || baseSet[p] {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
 }

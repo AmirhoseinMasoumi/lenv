@@ -65,3 +65,37 @@ func TestSaveWritesValidConfig(t *testing.T) {
 		t.Fatalf("saved file missing: %v", err)
 	}
 }
+
+func TestValidateRejectsEmptyProfileName(t *testing.T) {
+	err := Validate(&LenvToml{Env: EnvConfig{Profiles: []string{"usb", " "}}})
+	if err == nil {
+		t.Fatal("expected validation error for empty profile name")
+	}
+}
+
+func TestApplyProfilesMergesProfileData(t *testing.T) {
+	cfg := &Config{
+		Distro:   "alpine",
+		Packages: []string{"git"},
+	}
+	err := ApplyProfiles(cfg, []string{"usb", "audio"})
+	if err != nil {
+		t.Fatalf("ApplyProfiles returned error: %v", err)
+	}
+	if len(cfg.ExtraQEMUArgs) == 0 {
+		t.Fatal("expected qemu args from profiles")
+	}
+	foundUSBUtils := false
+	foundALSA := false
+	for _, p := range cfg.Packages {
+		if p == "usbutils" {
+			foundUSBUtils = true
+		}
+		if p == "alsa-utils" {
+			foundALSA = true
+		}
+	}
+	if !foundUSBUtils || !foundALSA {
+		t.Fatalf("expected merged packages to include usbutils and alsa-utils, got %v", cfg.Packages)
+	}
+}

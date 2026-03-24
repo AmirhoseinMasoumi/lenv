@@ -72,6 +72,7 @@ func completeInstances(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 func init() {
 	rootCmd.AddCommand(completionCmd)
 	_ = initCmd.RegisterFlagCompletionFunc("distro", completeDistros)
+	_ = initCmd.RegisterFlagCompletionFunc("profile", completeProfiles)
 	_ = snapshotRestoreCmd.ValidArgsFunction
 	_ = snapshotDeleteCmd.ValidArgsFunction
 	snapshotRestoreCmd.ValidArgsFunction = completeSnapshots

@@ -53,6 +53,9 @@ func BuildArgs(cfg *config.Config, projectDir string, sshPort int) []string {
 			"-virtfs", fmt.Sprintf("local,path=%s,mount_tag=workspace,security_model=none,multidevs=remap,id=workspace", hostPath),
 		)
 	}
+	if len(cfg.ExtraQEMUArgs) > 0 {
+		args = append(args, cfg.ExtraQEMUArgs...)
+	}
 	return args
 }
 
