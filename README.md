@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/AmirhoseinMasoumi/lenv)](https://github.com/AmirhoseinMasoumi/lenv/releases)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/AmirhoseinMasoumi/lenv)
 
-**`lenv` gives you instant per-project Linux VMs with auto rootfs download, zero global distro setup, and reproducible `lenv.toml` environments.**
+**`lenv` gives you instant per-project Linux VMs with auto rootfs + managed QEMU runtime download, zero global setup, and reproducible `lenv.toml` environments.**
 
 <!-- DEMO GIF HERE -->
 
@@ -19,6 +19,8 @@ go install github.com/AmirhoseinMasoumi/lenv@latest
 lenv init --distro alpine
 lenv run "uname -a"
 ```
+
+No manual QEMU install is required in the default flow. If `qemu-system-x86_64` is not on `PATH`, `lenv` downloads and verifies a managed runtime automatically.
 
 ## Why lenv
 
@@ -59,13 +61,13 @@ winget install AmirhoseinMasoumi.lenv
 # Download latest lenv.exe from Releases and place in PATH
 ```
 
-#### QEMU
+#### Optional: system QEMU
 
 ```powershell
 winget install QEMU.QEMU
 ```
 
-`lenv` can auto-install a managed QEMU runtime under `~/.lenv/runtime/` on first use when `qemu-system-x86_64` is not on `PATH`.
+Use this only if you want a host-managed runtime. Otherwise, `lenv` auto-installs a managed runtime under `~/.lenv/runtime/`.
 
 ### macOS
 
@@ -82,13 +84,13 @@ brew install lenv
 # Download binary from Releases and move to /usr/local/bin or ~/.local/bin
 ```
 
-#### QEMU
+#### Optional: system QEMU
 
 ```bash
 brew install qemu
 ```
 
-`lenv` can auto-install a managed QEMU runtime under `~/.lenv/runtime/` on first use when `qemu-system-x86_64` is not on `PATH`.
+Use this only if you want a host-managed runtime. Otherwise, `lenv` auto-installs a managed runtime under `~/.lenv/runtime/`.
 
 ### Linux
 
@@ -98,14 +100,14 @@ brew install qemu
 curl -fsSL https://raw.githubusercontent.com/AmirhoseinMasoumi/lenv/master/install.sh | sh
 ```
 
-#### QEMU
+#### Optional: system QEMU
 
 ```bash
 # Debian/Ubuntu
 sudo apt-get update && sudo apt-get install -y qemu-system-x86 qemu-utils
 ```
 
-`lenv` can auto-install a managed QEMU runtime under `~/.lenv/runtime/` on first use when `qemu-system-x86_64` is not on `PATH`.
+Use this only if you want a host-managed runtime. Otherwise, `lenv` auto-installs a managed runtime under `~/.lenv/runtime/`.
 
 ## Usage
 
@@ -339,6 +341,12 @@ Resolution order:
 2. `qemu-system-x86_64` from `PATH`
 3. Managed runtime in `~/.lenv/runtime/qemu/<os>-<arch>/`
 4. Auto-download managed runtime and verify SHA256
+
+Managed runtime location:
+
+```text
+~/.lenv/runtime/qemu/<os>-<arch>/
+```
 
 Relevant environment variables:
 
