@@ -1,4 +1,4 @@
-﻿package vm
+package vm
 
 import (
 	"fmt"
@@ -212,4 +212,3 @@ func useDirectKernelBoot(cfg *config.Config) bool {
 	}
 	return true
 }
-

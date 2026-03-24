@@ -55,4 +55,3 @@ func firstNonZero(v, fallback int) int {
 	}
 	return v
 }
-

@@ -57,4 +57,3 @@ func windowsExcludedPorts() (map[int]bool, error) {
 	}
 	return excluded, nil
 }
-

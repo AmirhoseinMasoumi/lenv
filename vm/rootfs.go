@@ -1,4 +1,4 @@
-﻿package vm
+package vm
 
 import (
 	"bytes"
@@ -269,4 +269,3 @@ runcmd:
 	}
 	return nil
 }
-

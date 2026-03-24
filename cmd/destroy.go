@@ -1,4 +1,4 @@
-﻿package cmd
+package cmd
 
 import (
 	"fmt"
@@ -40,4 +40,3 @@ var destroyCmd = &cobra.Command{
 }
 
 func init() { rootCmd.AddCommand(destroyCmd) }
-

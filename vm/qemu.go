@@ -1,4 +1,4 @@
-﻿package vm
+package vm
 
 import (
 	"fmt"
@@ -93,4 +93,3 @@ func ConfigPath(projectDir string) string { return filepath.Join(StateDir(projec
 func SeedISOPath(projectDir string) string {
 	return filepath.Join(StateDir(projectDir), "seed.iso")
 }
-
