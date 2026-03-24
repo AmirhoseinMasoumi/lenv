@@ -6,8 +6,9 @@
 
 `lenv` is a production-ready CLI for reproducible, per-project Linux VM environments with zero-dependency runtime fallback and shareable project configuration.
 
-<!-- DEMO GIF HERE -->
-![lenv demo](demo.gif)
+> Demo GIF is generated locally from `demo.tape` and will appear here once `demo.gif` is committed.
+>
+> Render command: `vhs demo.tape`
 
 ## Why teams use lenv
 
