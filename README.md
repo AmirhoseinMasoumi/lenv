@@ -7,6 +7,7 @@
 `lenv` is a production-ready CLI for reproducible, per-project Linux VM environments with zero-dependency runtime fallback and shareable project configuration.
 
 <!-- DEMO GIF HERE -->
+![lenv demo](demo.gif)
 
 ## Why teams use lenv
 
