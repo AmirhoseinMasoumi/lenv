@@ -24,24 +24,24 @@ lenv run "uname -a"
 
 | Feature | lenv | WSL2 | Docker Desktop | Vagrant |
 |---|---|---|---|---|
-| Windows Home support | ✅ | ⚠️ Limited / Hyper-V constraints | ✅ | ✅ |
-| macOS support | ✅ | ❌ | ✅ | ✅ |
-| Per-project isolation | ✅ Native | ❌ | ⚠️ Container-scoped | ⚠️ Manual |
-| No admin required | ✅ Typical flow | ❌ Often required | ❌ Often required | ⚠️ Varies |
-| Auto rootfs download | ✅ | ❌ | ✅ (images) | ❌ |
-| Shareable `lenv.toml` | ✅ | ❌ | ⚠️ Different model | ⚠️ Vagrantfile only |
+| Windows Home support | Yes | Limited / Hyper-V constraints | Yes | Yes |
+| macOS support | Yes | No | Yes | Yes |
+| Per-project isolation | Native | No | Container-scoped | Manual |
+| No admin required | Typical flow | Often required | Often required | Varies |
+| Auto rootfs download | Yes | No | Yes (images) | No |
+| Shareable `lenv.toml` | Yes | No | Different model | Vagrantfile only |
 | Cold start time | Fast (seconds) | Fast | Medium | Slow |
 | File I/O speed | Fast local VM disk; shared fs depends on backend | Good in Linux FS, slower on mounted Windows paths | Varies by mount driver | Varies |
 
 ## Features
 
-- 🚀 **`lenv init`**: Creates and boots a Linux VM for the current project with automatic rootfs provisioning.
-- 🖥️ **`lenv shell`**: Opens an interactive shell session directly inside your project VM.
-- ⚙️ **`lenv run`**: Executes a command in Linux and streams output back to your host terminal.
-- 📦 **`lenv install`**: Installs packages via `apk`, `apt`, or `pacman` based on distro.
-- 📸 **`lenv snapshot`**: Saves and restores reusable VM disk snapshots.
-- 🧹 **`lenv destroy`**: Stops VM processes and removes `.lenv` state without touching project files.
-- 🔎 **`lenv status`**: Shows currently running `lenv` VM instances and connection info.
+- **`lenv init`**: Creates and boots a Linux VM for the current project with automatic rootfs provisioning.
+- **`lenv shell`**: Opens an interactive shell session directly inside your project VM.
+- **`lenv run`**: Executes a command in Linux and streams output back to your host terminal.
+- **`lenv install`**: Installs packages via `apk`, `apt`, or `pacman` based on distro.
+- **`lenv snapshot`**: Saves and restores reusable VM disk snapshots.
+- **`lenv destroy`**: Stops VM processes and removes `.lenv` state without touching project files.
+- **`lenv status`**: Shows currently running `lenv` VM instances and connection info.
 
 ## Installation
 
@@ -228,7 +228,7 @@ workspace = "/workspace"
 
 ## Roadmap
 
-- [x] **v0.1** ✅ Working `init/run/destroy`, rootfs auto-fetch, dynamic ports
+- [x] **v0.1** Working `init/run/destroy`, rootfs auto-fetch, dynamic ports
 - [ ] **v0.2** Better usability: hardened shell/install/status UX
 - [ ] **v0.3** Shareable workflows: polished `lenv.toml` and distro matrix
 - [ ] **v0.4** Performance: acceleration wiring and warm-start snapshots
