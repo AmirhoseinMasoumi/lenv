@@ -252,6 +252,3 @@ go test ./...
 
 MIT
 
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=AmirhoseinMasoumi/Lenv&type=Date)](https://star-history.com/#AmirhoseinMasoumi/Lenv&Date)
