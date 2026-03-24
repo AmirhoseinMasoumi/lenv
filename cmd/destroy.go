@@ -19,6 +19,9 @@ var destroyCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		ui.Title("lenv destroy")
+		ui.KV("Project", dir)
+		ui.Divider()
 		_ = fs.Stop(dir)
 		_ = vm.Stop(dir)
 		var rmErr error

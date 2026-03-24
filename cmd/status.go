@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/AmirhoseinMasoumi/lenv/internal/ui"
 	"github.com/AmirhoseinMasoumi/lenv/vm"
 	"github.com/spf13/cobra"
 )
@@ -11,18 +12,26 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show running VM status",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv status")
 		statuses, err := vm.ListRunningStatuses()
 		if err != nil {
 			return err
 		}
 		if len(statuses) == 0 {
-			fmt.Println("No running lenv VMs found.")
+			ui.Warn("No running lenv VMs found.")
 			return nil
 		}
 		for _, s := range statuses {
-			fmt.Printf("Instance: %s\nProject: %s\nRunning: %t\nPID: %d\nSSH Port: %d\nDistro: %s\nAccel: %s\n\n",
-				s.Instance, s.ProjectDir, s.Running, s.PID, s.SSHPort, s.Distro, s.Accel)
+			ui.Divider()
+			ui.KV("Instance", s.Instance)
+			ui.KV("Project", s.ProjectDir)
+			ui.KV("Running", fmt.Sprintf("%t", s.Running))
+			ui.KV("PID", fmt.Sprintf("%d", s.PID))
+			ui.KV("SSH Port", fmt.Sprintf("%d", s.SSHPort))
+			ui.KV("Distro", s.Distro)
+			ui.KV("Accel", s.Accel)
 		}
+		ui.Divider()
 		return nil
 	},
 }

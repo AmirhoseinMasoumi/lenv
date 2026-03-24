@@ -30,6 +30,8 @@ var initCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("resolve project dir: %w", err)
 		}
+		ui.Title("lenv init")
+		ui.KV("Project", dir)
 		if err := vm.EnsureState(dir); err != nil {
 			return fmt.Errorf("prepare state: %w", err)
 		}
@@ -61,6 +63,11 @@ var initCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("resolve config: %w", err)
 		}
+		ui.KV("Distro", cfg.Distro)
+		if len(selectedProfiles) > 0 {
+			ui.KV("Profiles", strings.Join(selectedProfiles, ", "))
+		}
+		ui.Divider()
 		basePackages := append([]string{}, cfg.Packages...)
 		if err := config.ApplyProfiles(cfg, selectedProfiles); err != nil {
 			return fmt.Errorf("apply profiles: %w", err)

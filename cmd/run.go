@@ -22,6 +22,7 @@ var runCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		ui.Title("lenv run")
 		st := vm.GetStatus(dir)
 		if st.SSHPort == 0 {
 			return fmt.Errorf("VM not initialized; run `lenv init` first")
@@ -38,6 +39,10 @@ var runCmd = &cobra.Command{
 		if len(runEnvVars) > 0 {
 			command = envPrefix(runEnvVars) + " " + command
 		}
+		ui.KV("Instance", st.Instance)
+		ui.KV("SSH Port", fmt.Sprintf("%d", st.SSHPort))
+		ui.KV("Command", command)
+		ui.Divider()
 		ui.Info("Running: " + command)
 		exitCode, err := lssh.Exec(client, command)
 		if err != nil {
