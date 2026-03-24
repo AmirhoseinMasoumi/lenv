@@ -1,8 +1,8 @@
-[![Go Version](https://img.shields.io/badge/go-1.23+-00ADD8?logo=go)](https://go.dev/)
+﻿[![Go Version](https://img.shields.io/badge/go-1.23+-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/AmirhoseinMasoumi/Lenv/ci.yml?branch=master&label=build)](https://github.com/AmirhoseinMasoumi/Lenv/actions)
-[![Release](https://img.shields.io/github/v/release/AmirhoseinMasoumi/Lenv)](https://github.com/AmirhoseinMasoumi/Lenv/releases)
-[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/AmirhoseinMasoumi/Lenv)
+[![Build](https://img.shields.io/github/actions/workflow/status/AmirhoseinMasoumi/Lenv/ci.yml?branch=master&label=build)](https://github.com/AmirhoseinMasoumi/lenv/actions)
+[![Release](https://img.shields.io/github/v/release/AmirhoseinMasoumi/Lenv)](https://github.com/AmirhoseinMasoumi/lenv/releases)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/AmirhoseinMasoumi/lenv)
 
 **`lenv` gives you instant per-project Linux VMs with auto rootfs download, zero global distro setup, and reproducible `lenv.toml` environments.**
 
@@ -15,7 +15,7 @@
 ## Quick Start
 
 ```bash
-go install github.com/AmirhoseinMasoumi/Lenv@latest
+go install github.com/AmirhoseinMasoumi/lenv@latest
 lenv init --distro alpine
 lenv run "uname -a"
 ```

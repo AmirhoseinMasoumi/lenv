@@ -1,4 +1,4 @@
-module github.com/AmirhoseinMasoumi/Lenv
+module github.com/AmirhoseinMasoumi/lenv
 
 go 1.23.0
 

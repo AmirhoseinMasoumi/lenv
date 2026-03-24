@@ -1,4 +1,4 @@
-package cmd
+﻿package cmd
 
 import (
 	"fmt"
@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-"github.com/AmirhoseinMasoumi/Lenv/internal/ui"
-lssh "github.com/AmirhoseinMasoumi/Lenv/ssh"
-"github.com/AmirhoseinMasoumi/Lenv/vm"
+"github.com/AmirhoseinMasoumi/lenv/internal/ui"
+lssh "github.com/AmirhoseinMasoumi/lenv/ssh"
+"github.com/AmirhoseinMasoumi/lenv/vm"
 "github.com/spf13/cobra"
 )
 

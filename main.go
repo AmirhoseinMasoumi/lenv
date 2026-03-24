@@ -1,6 +1,6 @@
-package main
+﻿package main
 
-import "github.com/AmirhoseinMasoumi/Lenv/cmd"
+import "github.com/AmirhoseinMasoumi/lenv/cmd"
 
 func main() {
 cmd.Execute()

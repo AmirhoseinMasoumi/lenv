@@ -1,11 +1,11 @@
-# Contributing to lenv
+﻿# Contributing to lenv
 
 Thanks for your interest in contributing.
 
 ## Development setup
 
 ```bash
-git clone https://github.com/AmirhoseinMasoumi/Lenv.git
+git clone https://github.com/AmirhoseinMasoumi/lenv.git
 cd Lenv
 go build ./...
 go test ./...

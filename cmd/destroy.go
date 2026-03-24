@@ -1,13 +1,13 @@
-package cmd
+﻿package cmd
 
 import (
 	"fmt"
 	"os"
 	"time"
 
-	"github.com/AmirhoseinMasoumi/Lenv/fs"
-	"github.com/AmirhoseinMasoumi/Lenv/internal/ui"
-	"github.com/AmirhoseinMasoumi/Lenv/vm"
+	"github.com/AmirhoseinMasoumi/lenv/fs"
+	"github.com/AmirhoseinMasoumi/lenv/internal/ui"
+	"github.com/AmirhoseinMasoumi/lenv/vm"
 	"github.com/spf13/cobra"
 )
 

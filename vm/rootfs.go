@@ -1,4 +1,4 @@
-package vm
+﻿package vm
 
 import (
 	"bytes"
@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AmirhoseinMasoumi/Lenv/config"
-	"github.com/AmirhoseinMasoumi/Lenv/distro"
-	"github.com/AmirhoseinMasoumi/Lenv/internal/ui"
+	"github.com/AmirhoseinMasoumi/lenv/config"
+	"github.com/AmirhoseinMasoumi/lenv/distro"
+	"github.com/AmirhoseinMasoumi/lenv/internal/ui"
 	"github.com/kdomanski/iso9660"
 )
 
