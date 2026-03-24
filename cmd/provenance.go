@@ -46,6 +46,11 @@ var provenanceCmd = &cobra.Command{
 		fmt.Println()
 		fmt.Println("[profile_trust_catalog]")
 		catalog := filepath.Join(dir, "trusted-sources.txt")
+		fmt.Println("built-in:")
+		for prefix := range trustedProfileSources {
+			fmt.Printf("- %s\n", prefix)
+		}
+		fmt.Println("local:")
 		if _, err := os.Stat(catalog); err != nil {
 			fmt.Println("none")
 			return nil

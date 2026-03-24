@@ -135,6 +135,9 @@ lenv profile list
 lenv init --profile usb --profile audio
 lenv profile install github.com/someone/lenv-profile-ros2
 lenv profile remove ros2
+lenv profile trust list
+lenv profile trust add github.com/your-org/
+lenv profile trust remove github.com/your-org/
 lenv init --profile ros2
 ```
 
@@ -252,6 +255,13 @@ lenv completion powershell > lenv.ps1
 - Profile checksums are enforced when `.sha256` files are present.
 - Trust policy can be tightened via runtime manifest requirements and profile source catalog.
 - VM state is scoped to `.lenv/` and teardown does not remove project source files.
+
+See also:
+
+- `SECURITY.md`
+- `SUPPORT.md`
+- `UPGRADE.md`
+- `CHANGELOG.md`
 
 ## Roadmap
 

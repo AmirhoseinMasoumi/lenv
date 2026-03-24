@@ -77,3 +77,6 @@ This document records implementation choices made autonomously for v0.2, v0.3, a
 
 20. **Release operations ergonomics**
     Added `lenv release-notes` command to standardize release note drafts directly from the CLI.
+
+21. **v1 gate ops package**
+    Added formal operational docs (changelog, upgrade, support, security) and trust-management CLI for production readiness.

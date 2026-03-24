@@ -100,6 +100,11 @@ func VerifyManagedRuntime() error {
 	if st.QEMUImgPath == "" {
 		return fmt.Errorf("managed runtime missing qemu-img")
 	}
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("LENV_RUNTIME_MANIFEST_REQUIRED")), "1") {
+		if _, _, err := fetchRuntimeManifestAndSig(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

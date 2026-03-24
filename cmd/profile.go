@@ -21,6 +21,77 @@ var profileCmd = &cobra.Command{
 	Short: "Manage lenv profiles",
 }
 
+var profileTrustCmd = &cobra.Command{
+	Use:   "trust",
+	Short: "Manage trusted profile source catalog",
+}
+
+var profileTrustListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List trusted profile source prefixes",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		for _, p := range mergeTrustedSources(readTrustedSourceCatalog()) {
+			fmt.Println(p)
+		}
+		return nil
+	},
+}
+
+var profileTrustAddCmd = &cobra.Command{
+	Use:   "add <prefix>",
+	Short: "Add trusted profile source prefix",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		prefix := strings.TrimSpace(args[0])
+		if prefix == "" {
+			return fmt.Errorf("trusted source prefix cannot be empty")
+		}
+		items := readTrustedSourceCatalog()
+		for _, v := range items {
+			if v == prefix {
+				fmt.Println("Trusted source already present.")
+				return nil
+			}
+		}
+		items = append(items, prefix)
+		if err := writeTrustedSourceCatalog(items); err != nil {
+			return err
+		}
+		fmt.Printf("Added trusted source %s\n", prefix)
+		return nil
+	},
+}
+
+var profileTrustRemoveCmd = &cobra.Command{
+	Use:   "remove <prefix>",
+	Short: "Remove trusted profile source prefix from local catalog",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		prefix := strings.TrimSpace(args[0])
+		if prefix == "" {
+			return fmt.Errorf("trusted source prefix cannot be empty")
+		}
+		items := readTrustedSourceCatalog()
+		next := make([]string, 0, len(items))
+		removed := false
+		for _, v := range items {
+			if v == prefix {
+				removed = true
+				continue
+			}
+			next = append(next, v)
+		}
+		if !removed {
+			return fmt.Errorf("trusted source %q not found in local catalog", prefix)
+		}
+		if err := writeTrustedSourceCatalog(next); err != nil {
+			return err
+		}
+		fmt.Printf("Removed trusted source %s\n", prefix)
+		return nil
+	},
+}
+
 var trustedProfileSources = map[string]bool{
 	"github.com/AmirhoseinMasoumi/": true,
 	"github.com/someone/":           true,
@@ -189,6 +260,10 @@ func init() {
 	profileCmd.AddCommand(profileListCmd)
 	profileCmd.AddCommand(profileInstallCmd)
 	profileCmd.AddCommand(profileRemoveCmd)
+	profileTrustCmd.AddCommand(profileTrustListCmd)
+	profileTrustCmd.AddCommand(profileTrustAddCmd)
+	profileTrustCmd.AddCommand(profileTrustRemoveCmd)
+	profileCmd.AddCommand(profileTrustCmd)
 	rootCmd.AddCommand(profileCmd)
 }
 
@@ -230,17 +305,34 @@ func isTrustedProfileSource(src string) bool {
 	if strings.EqualFold(strings.TrimSpace(os.Getenv("LENV_PROFILE_TRUST_MODE")), "permissive") {
 		return true
 	}
-	for _, prefix := range readTrustedSourceCatalog() {
-		if strings.HasPrefix(src, prefix) {
-			return true
-		}
-	}
-	for prefix := range trustedProfileSources {
+	for _, prefix := range mergeTrustedSources(readTrustedSourceCatalog()) {
 		if strings.HasPrefix(src, prefix) {
 			return true
 		}
 	}
 	return false
+}
+
+func mergeTrustedSources(local []string) []string {
+	seen := map[string]bool{}
+	out := []string{}
+	for prefix := range trustedProfileSources {
+		if strings.TrimSpace(prefix) == "" || seen[prefix] {
+			continue
+		}
+		seen[prefix] = true
+		out = append(out, prefix)
+	}
+	for _, prefix := range local {
+		prefix = strings.TrimSpace(prefix)
+		if prefix == "" || seen[prefix] {
+			continue
+		}
+		seen[prefix] = true
+		out = append(out, prefix)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func readTrustedSourceCatalog() []string {
@@ -264,4 +356,30 @@ func readTrustedSourceCatalog() []string {
 		out = append(out, line)
 	}
 	return out
+}
+
+func writeTrustedSourceCatalog(items []string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	dir := filepath.Join(home, ".lenv", "profiles")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	path := filepath.Join(dir, "trusted-sources.txt")
+	normalized := []string{}
+	for _, v := range items {
+		v = strings.TrimSpace(v)
+		if v == "" {
+			continue
+		}
+		normalized = append(normalized, v)
+	}
+	sort.Strings(normalized)
+	body := strings.Join(normalized, "\n")
+	if body != "" {
+		body += "\n"
+	}
+	return os.WriteFile(path, []byte(body), 0o644)
 }
