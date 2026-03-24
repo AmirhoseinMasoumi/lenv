@@ -8,37 +8,38 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
-"github.com/AmirhoseinMasoumi/lenv/config"
+	"github.com/AmirhoseinMasoumi/lenv/config"
 )
 
 func EnsureState(projectDir string) error {
-if err := os.MkdirAll(StateDir(projectDir), 0o755); err != nil {
-return fmt.Errorf("create state dir: %w", err)
-}
-gitignore := filepathJoin(StateDir(projectDir), ".gitignore")
-if _, err := os.Stat(gitignore); err != nil {
-if werr := os.WriteFile(gitignore, []byte("*\n"), 0o644); werr != nil {
-return fmt.Errorf("write .lenv/.gitignore: %w", werr)
-}
-}
-return nil
+	if err := os.MkdirAll(StateDir(projectDir), 0o755); err != nil {
+		return fmt.Errorf("create state dir: %w", err)
+	}
+	gitignore := filepathJoin(StateDir(projectDir), ".gitignore")
+	if _, err := os.Stat(gitignore); err != nil {
+		if werr := os.WriteFile(gitignore, []byte("*\n"), 0o644); werr != nil {
+			return fmt.Errorf("write .lenv/.gitignore: %w", werr)
+		}
+	}
+	return nil
 }
 
 func EnsurePort(projectDir string) (int, error) {
-if b, err := os.ReadFile(PortPath(projectDir)); err == nil {
-if p, err := strconv.Atoi(trimSpace(string(b))); err == nil && p > 0 {
-return p, nil
-}
-}
-p, err := FindFreePort()
-if err != nil {
-return 0, fmt.Errorf("find free port: %w", err)
-}
-if err := os.WriteFile(PortPath(projectDir), []byte(strconv.Itoa(p)), 0o644); err != nil {
-return 0, fmt.Errorf("write ssh port: %w", err)
-}
-return p, nil
+	if b, err := os.ReadFile(PortPath(projectDir)); err == nil {
+		if p, err := strconv.Atoi(trimSpace(string(b))); err == nil && p > 0 {
+			return p, nil
+		}
+	}
+	p, err := FindFreePort()
+	if err != nil {
+		return 0, fmt.Errorf("find free port: %w", err)
+	}
+	if err := os.WriteFile(PortPath(projectDir), []byte(strconv.Itoa(p)), 0o644); err != nil {
+		return 0, fmt.Errorf("write ssh port: %w", err)
+	}
+	return p, nil
 }
 
 func Start(cfg *config.Config, projectDir string, sshPort int) error {
@@ -46,7 +47,7 @@ func Start(cfg *config.Config, projectDir string, sshPort int) error {
 	if err != nil {
 		return fmt.Errorf("QEMU not found. Install from https://www.qemu.org/download/ or set LENV_QEMU_PATH")
 	}
-	if useDirectKernelBoot() {
+	if useDirectKernelBoot(cfg) {
 		if _, err := os.Stat(cfg.KernelPath); err != nil {
 			return fmt.Errorf("kernel image not found at %q; set LENV_KERNEL_PATH to a valid Linux kernel image", cfg.KernelPath)
 		}
@@ -77,52 +78,59 @@ func Start(cfg *config.Config, projectDir string, sshPort int) error {
 }
 
 func Stop(projectDir string) error {
-b, err := os.ReadFile(PIDPath(projectDir))
-if err != nil {
-_ = removeInstanceRecord(projectDir)
-return nil
-}
-pid, err := strconv.Atoi(trimSpace(string(b)))
-if err != nil {
-_ = removeInstanceRecord(projectDir)
-return nil
-}
-proc, err := os.FindProcess(pid)
-if err != nil {
-_ = removeInstanceRecord(projectDir)
-return nil
-}
- if err := proc.Kill(); err != nil {
- return err
- }
- _ = removeInstanceRecord(projectDir)
- return nil
+	b, err := os.ReadFile(PIDPath(projectDir))
+	if err != nil {
+		_ = removeInstanceRecord(projectDir)
+		return nil
+	}
+	pid, err := strconv.Atoi(trimSpace(string(b)))
+	if err != nil {
+		_ = removeInstanceRecord(projectDir)
+		return nil
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		_ = removeInstanceRecord(projectDir)
+		return nil
+	}
+	if err := proc.Kill(); err != nil {
+		return err
+	}
+	for i := 0; i < 30; i++ {
+		if !processRunning(pid) {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	_ = os.Remove(PIDPath(projectDir))
+	_ = removeInstanceRecord(projectDir)
+	return nil
 }
 
 type Status struct {
-Instance string
-ProjectDir string
-Accel    string
-Distro   string
-PID      int
-SSHPort  int
-Running  bool
+	Instance   string
+	ProjectDir string
+	Accel      string
+	Distro     string
+	PID        int
+	SSHPort    int
+	Running    bool
 }
 
 func GetStatus(projectDir string) Status {
-s := Status{Instance: InstanceName(projectDir), ProjectDir: projectDir}
-if b, err := os.ReadFile(PIDPath(projectDir)); err == nil {
-if p, e := strconv.Atoi(trimSpace(string(b))); e == nil {
-s.PID = p
-s.Running = processRunning(p)
-}
-}
-if b, err := os.ReadFile(PortPath(projectDir)); err == nil {
-if p, e := strconv.Atoi(trimSpace(string(b))); e == nil {
-s.SSHPort = p
-}
-}
-return s
+	s := Status{Instance: InstanceName(projectDir), ProjectDir: projectDir}
+	if b, err := os.ReadFile(PIDPath(projectDir)); err == nil {
+		if p, e := strconv.Atoi(trimSpace(string(b))); e == nil {
+			s.PID = p
+			s.Running = processRunning(p)
+		}
+	}
+	if b, err := os.ReadFile(PortPath(projectDir)); err == nil {
+		if p, e := strconv.Atoi(trimSpace(string(b))); e == nil {
+			s.SSHPort = p
+		}
+	}
+	return s
 }
 
 func readPID(projectDir string) (int, error) {
@@ -156,9 +164,13 @@ func processRunning(pid int) bool {
 }
 
 func trimSpace(s string) string {
-for len(s) > 0 && (s[0] == ' ' || s[0] == '\t' || s[0] == '\n' || s[0] == '\r') { s = s[1:] }
-for len(s) > 0 && (s[len(s)-1] == ' ' || s[len(s)-1] == '\t' || s[len(s)-1] == '\n' || s[len(s)-1] == '\r') { s = s[:len(s)-1] }
-return s
+	for len(s) > 0 && (s[0] == ' ' || s[0] == '\t' || s[0] == '\n' || s[0] == '\r') {
+		s = s[1:]
+	}
+	for len(s) > 0 && (s[len(s)-1] == ' ' || s[len(s)-1] == '\t' || s[len(s)-1] == '\n' || s[len(s)-1] == '\r') {
+		s = s[:len(s)-1]
+	}
+	return s
 }
 
 func filepathJoin(a, b string) string {
@@ -181,15 +193,21 @@ func ResolveKernelPath(cfg *config.Config, projectDir string) {
 		cfg.KernelPath = p
 		return
 	}
+	if strings.TrimSpace(cfg.KernelPath) == "" {
+		return
+	}
 	if filepath.IsAbs(cfg.KernelPath) {
 		return
 	}
 	cfg.KernelPath = filepath.Join(StateDir(projectDir), cfg.KernelPath)
 }
 
-func useDirectKernelBoot() bool {
+func useDirectKernelBoot(cfg *config.Config) bool {
 	kernel, hasKernel := os.LookupEnv("LENV_KERNEL_PATH")
 	if hasKernel && strings.TrimSpace(kernel) == "" {
+		return false
+	}
+	if cfg != nil && strings.TrimSpace(cfg.KernelPath) == "" {
 		return false
 	}
 	return true

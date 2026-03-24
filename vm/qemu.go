@@ -15,7 +15,7 @@ import (
 func BuildArgs(cfg *config.Config, projectDir string, sshPort int) []string {
 	cfg.Accel = DetectAccel()
 	useVirtioFS := fs.Available() || runtime.GOOS != "windows"
-	directKernelBoot := useDirectKernelBoot()
+	directKernelBoot := useDirectKernelBoot(cfg)
 	args := []string{
 		"-machine", "q35,accel=" + cfg.Accel,
 		"-cpu", cpuModel(cfg.Accel),
@@ -36,6 +36,9 @@ func BuildArgs(cfg *config.Config, projectDir string, sshPort int) []string {
 	}
 	if runtime.GOOS != "windows" {
 		args = append(args, "-daemonize", "-pidfile", PIDPath(projectDir))
+	}
+	if _, err := os.Stat(SeedISOPath(projectDir)); err == nil {
+		args = append(args, "-drive", fmt.Sprintf("file=%s,if=virtio,media=cdrom,readonly=on", SeedISOPath(projectDir)))
 	}
 	if useVirtioFS {
 		args = append(args,
@@ -77,8 +80,8 @@ func virtfsSupported() bool {
 	return v == "1" || v == "true" || v == "yes"
 }
 
-func StateDir(projectDir string) string   { return filepath.Join(projectDir, ".lenv") }
-func PIDPath(projectDir string) string    { return filepath.Join(StateDir(projectDir), "pid") }
+func StateDir(projectDir string) string { return filepath.Join(projectDir, ".lenv") }
+func PIDPath(projectDir string) string  { return filepath.Join(StateDir(projectDir), "pid") }
 func DiskPath(projectDir string) string {
 	if override := os.Getenv("LENV_DISK_PATH"); override != "" {
 		return override
@@ -87,3 +90,6 @@ func DiskPath(projectDir string) string {
 }
 func PortPath(projectDir string) string   { return filepath.Join(StateDir(projectDir), "ssh_port") }
 func ConfigPath(projectDir string) string { return filepath.Join(StateDir(projectDir), "config.toml") }
+func SeedISOPath(projectDir string) string {
+	return filepath.Join(StateDir(projectDir), "seed.iso")
+}
