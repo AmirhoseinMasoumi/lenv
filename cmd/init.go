@@ -65,6 +65,9 @@ var initCmd = &cobra.Command{
 		if err := config.ApplyProfiles(cfg, selectedProfiles); err != nil {
 			return fmt.Errorf("apply profiles: %w", err)
 		}
+		if err := vm.HandleKernelProfileConfig(cfg, dir); err != nil {
+			return fmt.Errorf("apply profile kernel config: %w", err)
+		}
 		if err := vm.EnsureDisk(cfg, dir); err != nil {
 			return fmt.Errorf("prepare rootfs disk: %w", err)
 		}

@@ -184,7 +184,16 @@ func resolveQEMUPath() (string, error) {
 		}
 		return explicit, nil
 	}
-	return exec.LookPath("qemu-system-x86_64")
+	if p, err := exec.LookPath("qemu-system-x86_64"); err == nil {
+		return p, nil
+	}
+	if p, err := managedQEMUPath(); err == nil {
+		return p, nil
+	}
+	if err := ensureManagedQEMU(); err != nil {
+		return "", fmt.Errorf("qemu not found in PATH and managed runtime setup failed: %w", err)
+	}
+	return managedQEMUPath()
 }
 
 func ResolveKernelPath(cfg *config.Config, projectDir string) {

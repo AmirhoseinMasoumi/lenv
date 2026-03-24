@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -69,6 +71,9 @@ func LoadProfile(name string) (*ProfileFile, error) {
 	if _, err := os.Stat(path); err != nil {
 		return nil, fmt.Errorf("profile %q not found", name)
 	}
+	if err := verifyProfileIntegrity(path); err != nil {
+		return nil, fmt.Errorf("verify profile %q: %w", name, err)
+	}
 	if _, err := toml.DecodeFile(path, &pf); err != nil {
 		return nil, fmt.Errorf("parse profile %q: %w", name, err)
 	}
@@ -76,6 +81,35 @@ func LoadProfile(name string) (*ProfileFile, error) {
 		pf.Profile.Name = name
 	}
 	return &pf, nil
+}
+
+func verifyProfileIntegrity(profilePath string) error {
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("LENV_PROFILE_VERIFY")), "0") {
+		return nil
+	}
+	checkPath := profilePath + ".sha256"
+	b, err := os.ReadFile(checkPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	fields := strings.Fields(string(b))
+	if len(fields) == 0 {
+		return fmt.Errorf("invalid checksum file")
+	}
+	expected := strings.ToLower(strings.TrimSpace(fields[0]))
+	pb, err := os.ReadFile(profilePath)
+	if err != nil {
+		return err
+	}
+	sum := sha256.Sum256(pb)
+	actual := hex.EncodeToString(sum[:])
+	if actual != expected {
+		return fmt.Errorf("checksum mismatch")
+	}
+	return nil
 }
 
 func ApplyProfiles(cfg *Config, names []string) error {

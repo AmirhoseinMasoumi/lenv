@@ -47,3 +47,12 @@ This document records implementation choices made autonomously for v0.2, v0.3, a
 
 10. **Community profile distribution**  
     Added `lenv profile install` supporting GitHub repo convention (`github.com/<owner>/lenv-profile-<name>` -> `raw/main/profile.toml`) and local TOML installs.
+
+11. **Zero-dependency runtime fallback (v0.5.1)**  
+    Implemented managed QEMU runtime fallback: PATH-first, then `~/.lenv/runtime/qemu/<os>-<arch>/`, then auto-download + SHA256 verification.
+
+12. **Profile integrity verification (v0.5.1)**  
+    Added optional `profile.toml.sha256` verification for community profiles; enforced at profile load when checksum file exists.
+
+13. **Kernel config profile handling (v0.5.1)**  
+    Added deterministic handling for profile kernel config requirements: write actionable TODO note by default; hard-fail when `LENV_KERNEL_REBUILD=1` is set.

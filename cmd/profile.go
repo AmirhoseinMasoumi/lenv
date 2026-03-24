@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -79,9 +83,13 @@ var profileInstallCmd = &cobra.Command{
 				return fmt.Errorf("cannot infer profile name from %q", src)
 			}
 			url := "https://" + src + "/raw/main/profile.toml"
+			sumURL := "https://" + src + "/raw/main/profile.toml.sha256"
 			out := filepath.Join(dir, name+".toml")
 			if err := downloadAsset(url, out); err != nil {
 				return fmt.Errorf("download profile: %w", err)
+			}
+			if err := writeProfileChecksumFile(out, sumURL); err != nil {
+				return err
 			}
 			pf, err := config.LoadProfile(name)
 			if err != nil {
@@ -100,6 +108,9 @@ var profileInstallCmd = &cobra.Command{
 		base := strings.TrimSuffix(filepath.Base(src), ".toml")
 		dst := filepath.Join(dir, base+".toml")
 		if err := os.WriteFile(dst, b, 0o644); err != nil {
+			return err
+		}
+		if err := writeLocalProfileChecksumFile(dst); err != nil {
 			return err
 		}
 		pf, err := config.LoadProfile(base)
@@ -134,4 +145,33 @@ func init() {
 	profileCmd.AddCommand(profileListCmd)
 	profileCmd.AddCommand(profileInstallCmd)
 	rootCmd.AddCommand(profileCmd)
+}
+
+func writeProfileChecksumFile(profilePath, checksumURL string) error {
+	resp, err := http.Get(checksumURL)
+	if err != nil {
+		return fmt.Errorf("fetch profile checksum: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("fetch profile checksum failed: %s", resp.Status)
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	fields := strings.Fields(string(b))
+	if len(fields) == 0 {
+		return fmt.Errorf("invalid profile checksum payload")
+	}
+	return os.WriteFile(profilePath+".sha256", []byte(fields[0]+"\n"), 0o644)
+}
+
+func writeLocalProfileChecksumFile(profilePath string) error {
+	b, err := os.ReadFile(profilePath)
+	if err != nil {
+		return err
+	}
+	sum := sha256.Sum256(b)
+	return os.WriteFile(profilePath+".sha256", []byte(hex.EncodeToString(sum[:])+"\n"), 0o644)
 }

@@ -65,6 +65,8 @@ winget install AmirhoseinMasoumi.lenv
 winget install QEMU.QEMU
 ```
 
+`lenv` can auto-install a managed QEMU runtime under `~/.lenv/runtime/` on first use when `qemu-system-x86_64` is not on `PATH`.
+
 ### macOS
 
 #### Homebrew
@@ -86,6 +88,8 @@ brew install lenv
 brew install qemu
 ```
 
+`lenv` can auto-install a managed QEMU runtime under `~/.lenv/runtime/` on first use when `qemu-system-x86_64` is not on `PATH`.
+
 ### Linux
 
 #### Install
@@ -100,6 +104,8 @@ curl -fsSL https://raw.githubusercontent.com/AmirhoseinMasoumi/lenv/master/insta
 # Debian/Ubuntu
 sudo apt-get update && sudo apt-get install -y qemu-system-x86 qemu-utils
 ```
+
+`lenv` can auto-install a managed QEMU runtime under `~/.lenv/runtime/` on first use when `qemu-system-x86_64` is not on `PATH`.
 
 ## Usage
 
@@ -314,12 +320,36 @@ config = ["CONFIG_USB=y", "CONFIG_USB_XHCI_HCD=y"]
 install = ["usbutils", "libusb"]
 ```
 
+Optional integrity file (`profile.toml.sha256`) is supported and verified automatically when present.
+
 Activation model:
 
 1. Load base config from defaults and `lenv.toml`.
 2. Merge selected profile QEMU arguments.
 3. Boot VM with merged runtime flags.
 4. Apply profile package installs after SSH is ready.
+
+## Zero Dependency Runtime Mode
+
+`lenv` prefers host QEMU when available, then falls back to a managed runtime download.
+
+Resolution order:
+
+1. `LENV_QEMU_PATH` (explicit binary path)
+2. `qemu-system-x86_64` from `PATH`
+3. Managed runtime in `~/.lenv/runtime/qemu/<os>-<arch>/`
+4. Auto-download managed runtime and verify SHA256
+
+Relevant environment variables:
+
+```bash
+LENV_QEMU_PATH=/custom/path/qemu-system-x86_64
+LENV_QEMU_IMG_PATH=/custom/path/qemu-img
+LENV_QEMU_RUNTIME_URL=https://.../qemu-<os>-<arch>.zip
+LENV_QEMU_RUNTIME_SHA256_URL=https://.../qemu-<os>-<arch>.zip.sha256
+LENV_PROFILE_VERIFY=0   # disable profile checksum verification
+LENV_KERNEL_REBUILD=1   # hard-fail when profile requires kernel config
+```
 
 ## Benchmark
 

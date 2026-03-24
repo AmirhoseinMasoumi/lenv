@@ -72,9 +72,9 @@ func ensureQcow2Disk(downloadPath, finalDiskPath string) error {
 		return nil
 	}
 
-	qemuImg, err := exec.LookPath("qemu-img")
+	qemuImg, err := resolveQEMUImgPath()
 	if err != nil {
-		return fmt.Errorf("qemu-img not found; cannot convert rootfs to qcow2: %w", err)
+		return err
 	}
 	cmd := exec.Command(qemuImg, "convert", "-O", "qcow2", downloadPath, finalDiskPath)
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -82,6 +82,25 @@ func ensureQcow2Disk(downloadPath, finalDiskPath string) error {
 	}
 	_ = os.Remove(downloadPath)
 	return nil
+}
+
+func resolveQEMUImgPath() (string, error) {
+	if explicit := strings.TrimSpace(os.Getenv("LENV_QEMU_IMG_PATH")); explicit != "" {
+		if _, err := os.Stat(explicit); err != nil {
+			return "", fmt.Errorf("LENV_QEMU_IMG_PATH is invalid: %w", err)
+		}
+		return explicit, nil
+	}
+	if p, err := exec.LookPath("qemu-img"); err == nil {
+		return p, nil
+	}
+	if p, err := managedQEMUImgPath(); err == nil {
+		return p, nil
+	}
+	if err := ensureManagedQEMU(); err != nil {
+		return "", fmt.Errorf("qemu-img not found in PATH and managed runtime setup failed: %w", err)
+	}
+	return managedQEMUImgPath()
 }
 
 func downloadToFile(url, outPath string) error {
