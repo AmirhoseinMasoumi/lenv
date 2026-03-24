@@ -20,6 +20,11 @@ var profileCmd = &cobra.Command{
 	Short: "Manage lenv profiles",
 }
 
+var trustedProfileSources = map[string]bool{
+	"github.com/AmirhoseinMasoumi/": true,
+	"github.com/someone/":           true,
+}
+
 var profileListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List installed profiles",
@@ -74,6 +79,9 @@ var profileInstallCmd = &cobra.Command{
 			return err
 		}
 		if strings.HasPrefix(src, "github.com/") {
+			if !isTrustedProfileSource(src) {
+				return fmt.Errorf("profile source %q is not trusted by policy; set LENV_PROFILE_TRUST_MODE=permissive to allow", src)
+			}
 			parts := strings.Split(src, "/")
 			if len(parts) < 3 {
 				return fmt.Errorf("invalid GitHub profile source %q", src)
@@ -89,6 +97,9 @@ var profileInstallCmd = &cobra.Command{
 				return fmt.Errorf("download profile: %w", err)
 			}
 			if err := writeProfileChecksumFile(out, sumURL); err != nil {
+				return err
+			}
+			if err := writeProfileProvenanceFile(out, "github", src); err != nil {
 				return err
 			}
 			pf, err := config.LoadProfile(name)
@@ -111,6 +122,9 @@ var profileInstallCmd = &cobra.Command{
 			return err
 		}
 		if err := writeLocalProfileChecksumFile(dst); err != nil {
+			return err
+		}
+		if err := writeProfileProvenanceFile(dst, "local", src); err != nil {
 			return err
 		}
 		pf, err := config.LoadProfile(base)
@@ -204,4 +218,21 @@ func writeLocalProfileChecksumFile(profilePath string) error {
 	}
 	sum := sha256.Sum256(b)
 	return os.WriteFile(profilePath+".sha256", []byte(hex.EncodeToString(sum[:])+"\n"), 0o644)
+}
+
+func writeProfileProvenanceFile(profilePath, kind, source string) error {
+	body := "kind=" + kind + "\nsource=" + source + "\n"
+	return os.WriteFile(profilePath+".source", []byte(body), 0o644)
+}
+
+func isTrustedProfileSource(src string) bool {
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("LENV_PROFILE_TRUST_MODE")), "permissive") {
+		return true
+	}
+	for prefix := range trustedProfileSources {
+		if strings.HasPrefix(src, prefix) {
+			return true
+		}
+	}
+	return false
 }

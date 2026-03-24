@@ -65,3 +65,9 @@ This document records implementation choices made autonomously for v0.2, v0.3, a
 
 16. **Profile lifecycle hardening (v0.5.2)**
     Added `profile remove` and default checksum-required policy for external profiles to reduce supply-chain risk.
+
+17. **Kernel pipeline activation path (v0.5.3)**
+    Added executable kernel rebuild command path (`lenv kernel rebuild`) using `LENV_KERNEL_BUILD_CMD` and deterministic applied-hash tracking.
+
+18. **Trust and provenance foundations (v0.6)**
+    Added runtime manifest signature verification hooks and provenance commands for runtime/profile source visibility.

@@ -25,3 +25,12 @@ func TestGetRuntimeStatus(t *testing.T) {
 		t.Fatal("expected non-empty managed dir")
 	}
 }
+
+func TestRuntimeManifestURLsDefault(t *testing.T) {
+	if managedQEMUManifestURL() == "" {
+		t.Fatal("managedQEMUManifestURL should not be empty")
+	}
+	if managedQEMUManifestSigURL() == "" {
+		t.Fatal("managedQEMUManifestSigURL should not be empty")
+	}
+}

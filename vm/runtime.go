@@ -2,8 +2,11 @@ package vm
 
 import (
 	"archive/zip"
+	"crypto/ed25519"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,6 +30,12 @@ type RuntimeStatus struct {
 	ManagedReady bool
 	QEMUPath     string
 	QEMUImgPath  string
+}
+
+type RuntimeManifest struct {
+	Version   string `json:"version"`
+	SourceURL string `json:"source_url"`
+	SHA256    string `json:"sha256"`
 }
 
 func managedQEMUPath() (string, error) {
@@ -124,6 +133,9 @@ func ensureManagedQEMU() error {
 	if err := downloadFile(url, archivePath); err != nil {
 		return fmt.Errorf("download managed qemu runtime: %w", err)
 	}
+	if err := verifyRuntimeManifest(archivePath); err != nil {
+		return err
+	}
 	checksumURL := managedQEMUChecksumURL()
 	if strings.TrimSpace(checksumURL) != "" {
 		if err := verifyDownloadedSHA256(archivePath, checksumURL); err != nil {
@@ -152,6 +164,20 @@ func managedQEMUChecksumURL() string {
 		return v
 	}
 	return managedQEMUURL() + ".sha256"
+}
+
+func managedQEMUManifestURL() string {
+	if v := strings.TrimSpace(os.Getenv("LENV_QEMU_RUNTIME_MANIFEST_URL")); v != "" {
+		return v
+	}
+	return managedQEMUURL() + ".manifest.json"
+}
+
+func managedQEMUManifestSigURL() string {
+	if v := strings.TrimSpace(os.Getenv("LENV_QEMU_RUNTIME_MANIFEST_SIG_URL")); v != "" {
+		return v
+	}
+	return managedQEMUManifestURL() + ".sig"
 }
 
 func verifyDownloadedSHA256(path, checksumURL string) error {
@@ -186,6 +212,96 @@ func verifyDownloadedSHA256(path, checksumURL string) error {
 		return fmt.Errorf("managed runtime checksum mismatch")
 	}
 	return nil
+}
+
+func verifyRuntimeManifest(archivePath string) error {
+	required := strings.EqualFold(strings.TrimSpace(os.Getenv("LENV_RUNTIME_MANIFEST_REQUIRED")), "1")
+	manifest, sig, err := fetchRuntimeManifestAndSig()
+	if err != nil {
+		if required {
+			return err
+		}
+		return nil
+	}
+	if err := verifyManifestSignature(manifest, sig); err != nil {
+		if required {
+			return err
+		}
+		return nil
+	}
+	var m RuntimeManifest
+	if err := json.Unmarshal(manifest, &m); err != nil {
+		if required {
+			return fmt.Errorf("parse runtime manifest: %w", err)
+		}
+		return nil
+	}
+	if strings.TrimSpace(m.SHA256) == "" {
+		if required {
+			return fmt.Errorf("runtime manifest missing sha256")
+		}
+		return nil
+	}
+	f, err := os.Open(archivePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return err
+	}
+	actual := hex.EncodeToString(h.Sum(nil))
+	if !strings.EqualFold(actual, strings.TrimSpace(m.SHA256)) {
+		return fmt.Errorf("runtime manifest checksum mismatch")
+	}
+	return nil
+}
+
+func fetchRuntimeManifestAndSig() ([]byte, []byte, error) {
+	manifestURL := managedQEMUManifestURL()
+	sigURL := managedQEMUManifestSigURL()
+	manifest, err := fetchHTTPBytes(manifestURL)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetch runtime manifest: %w", err)
+	}
+	sig, err := fetchHTTPBytes(sigURL)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetch runtime manifest signature: %w", err)
+	}
+	return manifest, sig, nil
+}
+
+func verifyManifestSignature(manifest, sig []byte) error {
+	pub := strings.TrimSpace(os.Getenv("LENV_RUNTIME_MANIFEST_PUBKEY"))
+	if pub == "" {
+		return fmt.Errorf("runtime manifest public key is not set (LENV_RUNTIME_MANIFEST_PUBKEY)")
+	}
+	pubBytes, err := base64.StdEncoding.DecodeString(pub)
+	if err != nil {
+		return fmt.Errorf("decode runtime manifest public key: %w", err)
+	}
+	sigRaw := strings.TrimSpace(string(sig))
+	sigBytes, err := base64.StdEncoding.DecodeString(sigRaw)
+	if err != nil {
+		return fmt.Errorf("decode runtime manifest signature: %w", err)
+	}
+	if !ed25519.Verify(ed25519.PublicKey(pubBytes), manifest, sigBytes) {
+		return fmt.Errorf("runtime manifest signature verification failed")
+	}
+	return nil
+}
+
+func fetchHTTPBytes(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("request failed: %s", resp.Status)
+	}
+	return io.ReadAll(resp.Body)
 }
 
 func extractZip(zipPath, dst string) error {

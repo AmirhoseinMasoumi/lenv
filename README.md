@@ -187,9 +187,15 @@ LENV_QEMU_PATH=/custom/path/qemu-system-x86_64
 LENV_QEMU_IMG_PATH=/custom/path/qemu-img
 LENV_QEMU_RUNTIME_URL=https://.../qemu-<os>-<arch>.zip
 LENV_QEMU_RUNTIME_SHA256_URL=https://.../qemu-<os>-<arch>.zip.sha256
+LENV_QEMU_RUNTIME_MANIFEST_URL=https://.../runtime.manifest.json
+LENV_QEMU_RUNTIME_MANIFEST_SIG_URL=https://.../runtime.manifest.json.sig
+LENV_RUNTIME_MANIFEST_PUBKEY=<base64-ed25519-public-key>
+LENV_RUNTIME_MANIFEST_REQUIRED=1
 LENV_PROFILE_VERIFY=0
 LENV_PROFILE_REQUIRE_CHECKSUM=0
+LENV_PROFILE_TRUST_MODE=permissive
 LENV_KERNEL_REBUILD=1
+LENV_KERNEL_BUILD_CMD="..."
 ```
 
 ## Runtime management commands
@@ -198,7 +204,18 @@ LENV_KERNEL_REBUILD=1
 lenv runtime status
 lenv runtime verify
 lenv runtime clean
+lenv runtime provenance
 ```
+
+`lenv runtime verify` validates runtime completeness and trust policy requirements.
+
+## Provenance
+
+```bash
+lenv provenance
+```
+
+Prints runtime source/trust policy inputs and installed profile source metadata.
 
 ## VS Code and shell completion
 
@@ -231,8 +248,8 @@ lenv completion powershell > lenv.ps1
 - [x] v0.4: DX commands, completion, CI pipeline
 - [x] v0.5: Profile platform and zero-dependency runtime fallback
 - [x] v0.5.2: Runtime management commands and profile lifecycle hardening
-- [ ] v0.5.3: Kernel rebuild pipeline for profile kernel config
-- [ ] v0.6: Signed runtime manifests and profile trust policies
+- [x] v0.5.3: Kernel rebuild command path for profile kernel config
+- [x] v0.6: Signed manifest/trust policy foundations and provenance command
 
 ## Contributing
 
