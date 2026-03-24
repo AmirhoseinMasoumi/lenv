@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/AmirhoseinMasoumi/lenv/internal/ui"
 	"github.com/AmirhoseinMasoumi/lenv/vm"
 	"github.com/spf13/cobra"
 )
@@ -18,6 +19,7 @@ var snapshotSaveCmd = &cobra.Command{
 	Short: "Save snapshot",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv snapshot save")
 		dir, _ := absProjectDir()
 		home, err := os.UserHomeDir()
 		if err != nil {
@@ -28,7 +30,14 @@ var snapshotSaveCmd = &cobra.Command{
 		}
 		src := vm.DiskPath(dir)
 		dst := filepath.Join(home, ".lenv", "snapshots", args[0]+".qcow2")
-		return copyFile(src, dst)
+		ui.KV("Name", args[0])
+		ui.KV("Source", src)
+		ui.KV("Destination", dst)
+		if err := copyFile(src, dst); err != nil {
+			return err
+		}
+		ui.Success("Snapshot saved.")
+		return nil
 	},
 }
 
@@ -37,6 +46,7 @@ var snapshotRestoreCmd = &cobra.Command{
 	Short: "Restore snapshot",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv snapshot restore")
 		dir, _ := absProjectDir()
 		home, err := os.UserHomeDir()
 		if err != nil {
@@ -47,7 +57,14 @@ var snapshotRestoreCmd = &cobra.Command{
 		if _, err := os.Stat(src); err != nil {
 			return fmt.Errorf("snapshot not found: %s", args[0])
 		}
-		return copyFile(src, dst)
+		ui.KV("Name", args[0])
+		ui.KV("Source", src)
+		ui.KV("Destination", dst)
+		if err := copyFile(src, dst); err != nil {
+			return err
+		}
+		ui.Success("Snapshot restored.")
+		return nil
 	},
 }
 
@@ -55,6 +72,7 @@ var snapshotListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List snapshots",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv snapshot list")
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return err
@@ -62,12 +80,14 @@ var snapshotListCmd = &cobra.Command{
 		dir := filepath.Join(home, ".lenv", "snapshots")
 		entries, err := os.ReadDir(dir)
 		if os.IsNotExist(err) {
-			fmt.Println("No snapshots found.")
+			ui.Warn("No snapshots found.")
 			return nil
 		}
 		if err != nil {
 			return err
 		}
+		ui.KV("Directory", dir)
+		ui.Divider()
 		for _, e := range entries {
 			if e.IsDir() {
 				continue
@@ -75,7 +95,7 @@ var snapshotListCmd = &cobra.Command{
 			if filepath.Ext(e.Name()) != ".qcow2" {
 				continue
 			}
-			fmt.Println(strings.TrimSuffix(e.Name(), ".qcow2"))
+			ui.KV("Snapshot", strings.TrimSuffix(e.Name(), ".qcow2"))
 		}
 		return nil
 	},
@@ -86,6 +106,7 @@ var snapshotDeleteCmd = &cobra.Command{
 	Short: "Delete snapshot",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv snapshot delete")
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return err
@@ -97,7 +118,8 @@ var snapshotDeleteCmd = &cobra.Command{
 			}
 			return err
 		}
-		fmt.Printf("Deleted snapshot %s\n", args[0])
+		ui.KV("Name", args[0])
+		ui.Success("Snapshot deleted.")
 		return nil
 	},
 }

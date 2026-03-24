@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/AmirhoseinMasoumi/lenv/config"
+	"github.com/AmirhoseinMasoumi/lenv/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -30,9 +31,11 @@ var profileTrustListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List trusted profile source prefixes",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv profile trust list")
 		for _, p := range mergeTrustedSources(readTrustedSourceCatalog()) {
-			fmt.Println(p)
+			ui.KV("Trusted source", p)
 		}
+		ui.Divider()
 		return nil
 	},
 }
@@ -42,6 +45,7 @@ var profileTrustAddCmd = &cobra.Command{
 	Short: "Add trusted profile source prefix",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv profile trust add")
 		prefix := strings.TrimSpace(args[0])
 		if prefix == "" {
 			return fmt.Errorf("trusted source prefix cannot be empty")
@@ -49,7 +53,7 @@ var profileTrustAddCmd = &cobra.Command{
 		items := readTrustedSourceCatalog()
 		for _, v := range items {
 			if v == prefix {
-				fmt.Println("Trusted source already present.")
+				ui.Info("Trusted source already present.")
 				return nil
 			}
 		}
@@ -57,7 +61,8 @@ var profileTrustAddCmd = &cobra.Command{
 		if err := writeTrustedSourceCatalog(items); err != nil {
 			return err
 		}
-		fmt.Printf("Added trusted source %s\n", prefix)
+		ui.KV("Source", prefix)
+		ui.Success("Trusted source added.")
 		return nil
 	},
 }
@@ -67,6 +72,7 @@ var profileTrustRemoveCmd = &cobra.Command{
 	Short: "Remove trusted profile source prefix from local catalog",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv profile trust remove")
 		prefix := strings.TrimSpace(args[0])
 		if prefix == "" {
 			return fmt.Errorf("trusted source prefix cannot be empty")
@@ -87,7 +93,8 @@ var profileTrustRemoveCmd = &cobra.Command{
 		if err := writeTrustedSourceCatalog(next); err != nil {
 			return err
 		}
-		fmt.Printf("Removed trusted source %s\n", prefix)
+		ui.KV("Source", prefix)
+		ui.Success("Trusted source removed.")
 		return nil
 	},
 }
@@ -101,10 +108,13 @@ var profileListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List installed profiles",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv profile list")
 		names := []string{"minimal", "usb", "audio", "embedded", "gpu", "full"}
+		ui.KV("Built-in profiles", fmt.Sprintf("%d", len(names)))
+		ui.Divider()
 		for _, name := range names {
 			if p, ok := config.BuiltInProfile(name); ok {
-				fmt.Printf("%s %s (built-in)\n", p.Profile.Name, p.Profile.Version)
+				ui.KV(p.Profile.Name, p.Profile.Version+" (built-in)")
 			}
 		}
 		dir, err := config.ProfileDir()
@@ -123,12 +133,16 @@ var profileListCmd = &cobra.Command{
 			custom = append(custom, strings.TrimSuffix(e.Name(), ".toml"))
 		}
 		sort.Strings(custom)
+		if len(custom) > 0 {
+			ui.Divider()
+			ui.KV("Local profiles", fmt.Sprintf("%d", len(custom)))
+		}
 		for _, n := range custom {
 			pf, err := config.LoadProfile(n)
 			if err != nil {
 				continue
 			}
-			fmt.Printf("%s %s (local)\n", pf.Profile.Name, pf.Profile.Version)
+			ui.KV(pf.Profile.Name, pf.Profile.Version+" (local)")
 		}
 		return nil
 	},
@@ -139,10 +153,12 @@ var profileInstallCmd = &cobra.Command{
 	Short: "Install a community profile from a local TOML file or GitHub URL",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv profile install")
 		src := strings.TrimSpace(args[0])
 		if src == "" {
 			return fmt.Errorf("profile source cannot be empty")
 		}
+		ui.KV("Source", src)
 		dir, err := config.ProfileDir()
 		if err != nil {
 			return err
@@ -178,7 +194,9 @@ var profileInstallCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("installed profile invalid: %w", err)
 			}
-			fmt.Printf("Installed profile %s %s from %s\n", pf.Profile.Name, pf.Profile.Version, src)
+			ui.KV("Profile", pf.Profile.Name)
+			ui.KV("Version", pf.Profile.Version)
+			ui.Success("Profile installed.")
 			return nil
 		}
 		if filepath.Ext(src) != ".toml" {
@@ -203,7 +221,9 @@ var profileInstallCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("installed profile invalid: %w", err)
 		}
-		fmt.Printf("Installed profile %s %s from %s\n", pf.Profile.Name, pf.Profile.Version, src)
+		ui.KV("Profile", pf.Profile.Name)
+		ui.KV("Version", pf.Profile.Version)
+		ui.Success("Profile installed.")
 		return nil
 	},
 }
@@ -213,6 +233,7 @@ var profileRemoveCmd = &cobra.Command{
 	Short: "Remove an installed local/community profile",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui.Title("lenv profile remove")
 		name := strings.TrimSpace(args[0])
 		if name == "" {
 			return fmt.Errorf("profile name cannot be empty")
@@ -232,7 +253,8 @@ var profileRemoveCmd = &cobra.Command{
 			return err
 		}
 		_ = os.Remove(profilePath + ".sha256")
-		fmt.Printf("Removed profile %s\n", name)
+		ui.KV("Profile", name)
+		ui.Success("Profile removed.")
 		return nil
 	},
 }

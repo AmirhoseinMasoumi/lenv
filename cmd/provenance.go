@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/AmirhoseinMasoumi/lenv/config"
+	"github.com/AmirhoseinMasoumi/lenv/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -15,10 +15,12 @@ var provenanceCmd = &cobra.Command{
 	Use:   "provenance",
 	Short: "Show provenance for runtime and installed profiles",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("[runtime]")
+		ui.Title("lenv provenance")
+		ui.KV("Section", "runtime")
+		ui.Divider()
 		_ = runtimeProvenanceCmd.RunE(cmd, args)
-		fmt.Println()
-		fmt.Println("[profiles]")
+		ui.Divider()
+		ui.KV("Section", "profiles")
 		dir, err := config.ProfileDir()
 		if err != nil {
 			return err
@@ -28,7 +30,7 @@ var provenanceCmd = &cobra.Command{
 			return err
 		}
 		if os.IsNotExist(err) || len(entries) == 0 {
-			fmt.Println("none")
+			ui.Warn("No installed profiles.")
 			return nil
 		}
 		for _, e := range entries {
@@ -41,18 +43,18 @@ var provenanceCmd = &cobra.Command{
 			if b, err := os.ReadFile(sourcePath); err == nil {
 				source = strings.TrimSpace(string(b))
 			}
-			fmt.Printf("%s: %s\n", base, source)
+			ui.KV(base, source)
 		}
-		fmt.Println()
-		fmt.Println("[profile_trust_catalog]")
+		ui.Divider()
+		ui.KV("Section", "profile_trust_catalog")
 		catalog := filepath.Join(dir, "trusted-sources.txt")
-		fmt.Println("built-in:")
+		ui.KV("Built-in", "")
 		for prefix := range trustedProfileSources {
-			fmt.Printf("- %s\n", prefix)
+			ui.KV("Trusted source", prefix)
 		}
-		fmt.Println("local:")
+		ui.KV("Local", "")
 		if _, err := os.Stat(catalog); err != nil {
-			fmt.Println("none")
+			ui.Info("none")
 			return nil
 		}
 		f, err := os.Open(catalog)
@@ -66,7 +68,7 @@ var provenanceCmd = &cobra.Command{
 			if line == "" || strings.HasPrefix(line, "#") {
 				continue
 			}
-			fmt.Println(line)
+			ui.KV("Trusted source", line)
 		}
 		return nil
 	},

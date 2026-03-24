@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	useColor = hasColorSupport()
+	useColor  = hasColorSupport()
+	compactUI bool
 )
 
 func Info(msg string)    { fmt.Println(style("[INFO]", "cyan") + " " + msg) }
@@ -19,6 +20,10 @@ func Step(msg string)    { fmt.Println(style("[..]", "blue") + " " + msg) }
 func Done(msg string)    { fmt.Println(style("[DONE]", "magenta") + " " + msg) }
 
 func Title(text string) {
+	if compactUI {
+		fmt.Println(text)
+		return
+	}
 	bar := strings.Repeat("═", max(20, len(text)+4))
 	fmt.Println(style("╔"+bar+"╗", "blue"))
 	fmt.Println(style("║  "+text+"  ║", "blue"))
@@ -26,11 +31,23 @@ func Title(text string) {
 }
 
 func KV(key, value string) {
+	if compactUI {
+		fmt.Printf("%s=%s\n", sanitizeKey(key), value)
+		return
+	}
 	fmt.Printf("%s %s\n", style("• "+key+":", "cyan"), value)
 }
 
 func Divider() {
+	if compactUI {
+		return
+	}
 	fmt.Println(style(strings.Repeat("─", 54), "dim"))
+}
+
+func Configure(plain, compact bool) {
+	compactUI = compact || plain
+	useColor = hasColorSupport() && !plain
 }
 
 func style(s, color string) string {
@@ -73,4 +90,11 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func sanitizeKey(s string) string {
+	s = strings.TrimSpace(strings.ToLower(s))
+	s = strings.ReplaceAll(s, " ", "_")
+	s = strings.ReplaceAll(s, ":", "")
+	return s
 }
