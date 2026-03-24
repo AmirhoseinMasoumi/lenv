@@ -3,6 +3,7 @@ lenv-artifacts/
 *.qcow2
 *.iso
 *.vhdx
+*.tape
 
 # kernel/initrd blobs
 vmlinuz*
