@@ -1,4 +1,4 @@
-﻿[![Go Version](https://img.shields.io/badge/go-1.23+-00ADD8?logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/go-1.23+-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/AmirhoseinMasoumi/lenv/ci.yml?branch=master&label=build)](https://github.com/AmirhoseinMasoumi/lenv/actions)
 [![Release](https://img.shields.io/github/v/release/AmirhoseinMasoumi/lenv)](https://github.com/AmirhoseinMasoumi/lenv/releases)
@@ -234,6 +234,7 @@ workspace = "/workspace"
 - [x] **v0.2** Better usability: hardened shell/install/status UX, benchmark command
 - [x] **v0.3** Team workflows: full `lenv.toml`, snapshot sharing commands, env pass-through
 - [x] **v0.4** DX polish: completions, `exec`, `forward`, `vscode`, `update`, CI pipeline
+- [x] **v0.5 (foundation)** Profile system for optional VM capabilities and community extensions
 
 ## VS Code Integration
 
@@ -268,6 +269,57 @@ lenv profile list
 lenv init --profile usb --profile audio
 lenv profile install github.com/someone/lenv-profile-cuda
 ```
+
+Profiles keep the default VM lean while enabling optional capabilities per project.
+
+Built-in profiles:
+
+- `minimal`: baseline runtime profile (default behavior).
+- `usb`: USB controller args plus USB tooling packages.
+- `audio`: virtual audio device args plus ALSA tooling.
+- `embedded`: serial/OpenOCD-focused setup for firmware development.
+- `gpu`: virtio GPU device wiring.
+- `full`: combined compatibility profile with common extras.
+
+Project-level reproducibility:
+
+```toml
+[env]
+distro = "ubuntu"
+profiles = ["embedded", "usb"]
+```
+
+Community profile workflow:
+
+```bash
+lenv profile install github.com/someone/lenv-profile-ros2
+lenv init --profile ros2
+```
+
+Community profile format (`profile.toml`):
+
+```toml
+[profile]
+name = "usb"
+version = "1.0.0"
+author = "community-author"
+
+[qemu]
+extra_args = ["-device", "qemu-xhci"]
+
+[kernel]
+config = ["CONFIG_USB=y", "CONFIG_USB_XHCI_HCD=y"]
+
+[packages]
+install = ["usbutils", "libusb"]
+```
+
+Activation model:
+
+1. Load base config from defaults and `lenv.toml`.
+2. Merge selected profile QEMU arguments.
+3. Boot VM with merged runtime flags.
+4. Apply profile package installs after SSH is ready.
 
 ## Benchmark
 
