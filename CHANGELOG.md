@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## v1.2.0
+
+- Added `lenv stop` command to gracefully stop the VM and virtiofsd without destroying state.
+
 ## v1.0.0-ready (unreleased)
 
 - Completed zero-dependency runtime fallback and runtime management commands.
