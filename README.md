@@ -265,17 +265,6 @@ See also:
 - `UPGRADE.md`
 - `CHANGELOG.md`
 
-## Roadmap
-
-- [x] v0.1: Init/run/destroy with rootfs auto-fetch
-- [x] v0.2: Acceleration and boot optimization
-- [x] v0.3: Team workflows and snapshot sharing
-- [x] v0.4: DX commands, completion, CI pipeline
-- [x] v0.5: Profile platform and zero-dependency runtime fallback
-- [x] v0.5.2: Runtime management commands and profile lifecycle hardening
-- [x] v0.5.3: Kernel rebuild command path for profile kernel config
-- [x] v0.6: Signed manifest/trust policy foundations and provenance command
-
 ## Contributing
 
 Contributions are welcome. Please open an issue or pull request with reproducible details.
