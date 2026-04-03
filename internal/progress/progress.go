@@ -26,6 +26,8 @@ type Bar struct {
 
 // NewBar creates a new progress bar with the given total size and description.
 func NewBar(total int64, description string) *Bar {
+	enableVirtualTerminal() // Platform-specific
+
 	width := 40
 	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 60 {
 		width = min(w-40, 60)
