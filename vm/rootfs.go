@@ -18,17 +18,23 @@ import (
 
 	"github.com/AmirhoseinMasoumi/lenv/config"
 	"github.com/AmirhoseinMasoumi/lenv/distro"
+	"github.com/AmirhoseinMasoumi/lenv/internal/logger"
+	"github.com/AmirhoseinMasoumi/lenv/internal/progress"
 	"github.com/AmirhoseinMasoumi/lenv/internal/ui"
 	"github.com/kdomanski/iso9660"
 )
 
+var log = logger.WithComponent("rootfs")
+
 func EnsureDisk(cfg *config.Config, projectDir string) error {
 	if override := strings.TrimSpace(os.Getenv("LENV_DISK_PATH")); override != "" {
+		log.Debug("using disk override", "path", override)
 		return nil
 	}
 
 	finalDiskPath := DiskPath(projectDir)
 	if _, err := os.Stat(finalDiskPath); err == nil {
+		log.Debug("disk already exists", "path", finalDiskPath)
 		return nil
 	}
 
@@ -39,18 +45,24 @@ func EnsureDisk(cfg *config.Config, projectDir string) error {
 
 	downloadPath := downloadedImagePath(projectDir, meta.RootFSURL)
 	ui.Step("Fetching rootfs for " + cfg.Distro)
+	log.Info("downloading rootfs", "distro", cfg.Distro, "url", meta.RootFSURL)
 	if err := downloadToFile(meta.RootFSURL, downloadPath); err != nil {
+		log.Error("rootfs download failed", "error", err)
 		return err
 	}
 	if err := verifyChecksum(meta, downloadPath); err != nil {
+		log.Error("checksum verification failed", "error", err)
 		return err
 	}
 	if err := ensureQcow2Disk(downloadPath, finalDiskPath); err != nil {
+		log.Error("qcow2 conversion failed", "error", err)
 		return err
 	}
 	if err := prepareFirstBootSeed(projectDir); err != nil {
+		log.Error("seed preparation failed", "error", err)
 		return err
 	}
+	log.Info("rootfs ready", "path", finalDiskPath)
 	ui.Done("rootfs ready")
 	return nil
 }
@@ -122,6 +134,7 @@ func downloadToFile(url, outPath string) error {
 }
 
 func downloadAttempt(url, outPath string) error {
+	log.Debug("download attempt starting", "url", url)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("create rootfs request: %w", err)
@@ -134,16 +147,34 @@ func downloadAttempt(url, outPath string) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("download rootfs failed: %s", resp.Status)
 	}
+
+	totalSize := resp.ContentLength
+	log.Debug("download started", "size", totalSize)
+
 	tmp := outPath + ".part"
 	f, err := os.Create(tmp)
 	if err != nil {
 		return fmt.Errorf("create temporary rootfs file: %w", err)
 	}
-	if _, err := io.Copy(f, resp.Body); err != nil {
+
+	// Create progress bar if we know the total size
+	var reader io.Reader = resp.Body
+	var bar *progress.Bar
+	if totalSize > 0 {
+		bar = progress.NewBar(totalSize, "Downloading")
+		reader = progress.NewReader(resp.Body, bar)
+	}
+
+	if _, err := io.Copy(f, reader); err != nil {
 		_ = f.Close()
 		_ = os.Remove(tmp)
 		return fmt.Errorf("write downloaded rootfs: %w", err)
 	}
+
+	if bar != nil {
+		bar.Finish()
+	}
+
 	if err := f.Sync(); err != nil {
 		_ = f.Close()
 		_ = os.Remove(tmp)
@@ -157,15 +188,18 @@ func downloadAttempt(url, outPath string) error {
 		_ = os.Remove(tmp)
 		return fmt.Errorf("finalize downloaded rootfs: %w", err)
 	}
+	log.Debug("download complete", "path", outPath)
 	return nil
 }
 
 func verifyChecksum(meta distro.Distro, filePath string) error {
 	algo := strings.ToLower(strings.TrimSpace(meta.ChecksumAlgo))
 	if algo == "" {
+		log.Debug("no checksum configured, skipping verification")
 		return nil
 	}
 	ui.Step("Verifying image checksum")
+	log.Info("verifying checksum", "algorithm", algo, "file", filePath)
 	expected, err := fetchExpectedChecksum(meta)
 	if err != nil {
 		return err
@@ -175,8 +209,10 @@ func verifyChecksum(meta distro.Distro, filePath string) error {
 		return err
 	}
 	if !strings.EqualFold(expected, actual) {
+		log.Error("checksum mismatch", "expected", expected, "actual", actual)
 		return fmt.Errorf("checksum mismatch for %s", path.Base(meta.RootFSURL))
 	}
+	log.Debug("checksum verified", "hash", actual[:16]+"...")
 	ui.Done("checksum verified")
 	return nil
 }

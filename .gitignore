@@ -13,9 +13,20 @@ initramfs*
 .lenv/
 
 # Go build output
+build/
 lenv.exe
 lenv
 
 # OS
 .DS_Store
 Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test coverage
+coverage.out
+coverage.html
