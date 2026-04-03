@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -13,15 +14,16 @@ import (
 
 // Bar represents a progress bar for tracking download/operation progress.
 type Bar struct {
-	total       int64
-	current     int64
-	startTime   time.Time
-	lastUpdate  time.Time
-	description string
-	width       int
-	mu          sync.Mutex
-	done        bool
-	isTTY       bool
+	total        int64
+	current      int64
+	startTime    time.Time
+	lastUpdate   time.Time
+	description  string
+	width        int
+	mu           sync.Mutex
+	done         bool
+	isTTY        bool
+	lastLineLen  int
 }
 
 // NewBar creates a new progress bar with the given total size and description.
@@ -33,7 +35,13 @@ func NewBar(total int64, description string) *Bar {
 		width = min(w-40, 60)
 	}
 
+	// On Windows, assume TTY if we successfully enabled VT processing
+	// On other platforms, check properly
 	isTTY := term.IsTerminal(int(os.Stdout.Fd()))
+	if runtime.GOOS == "windows" {
+		// Windows terminal detection can be unreliable, assume true for interactive use
+		isTTY = true
+	}
 
 	return &Bar{
 		total:       total,
@@ -168,9 +176,19 @@ func (b *Bar) renderTTY(percent, speed float64, eta string) {
 	totalStr := formatBytes(b.total)
 	speedStr := formatBytes(int64(speed)) + "/s"
 
-	// Clear line and print
-	fmt.Printf("\r\x1b[K%s [%s] %5.1f%% %s/%s %s ETA: %s",
+	// Build the line
+	line := fmt.Sprintf("%s [%s] %5.1f%% %s/%s %s ETA: %s",
 		b.description, bar, percent, currentStr, totalStr, speedStr, eta)
+
+	// Pad with spaces to clear any previous longer content
+	if len(line) < b.lastLineLen {
+		line += strings.Repeat(" ", b.lastLineLen-len(line))
+	}
+	b.lastLineLen = len(line)
+
+	// Use carriage return to overwrite the line
+	fmt.Print("\r" + line)
+	os.Stdout.Sync()
 }
 
 func (b *Bar) renderNonTTY(percent, speed float64) {
