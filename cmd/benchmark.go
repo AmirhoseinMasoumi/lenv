@@ -81,7 +81,7 @@ var benchmarkCmd = &cobra.Command{
 			rttSum += rttDur
 			_ = client.Close()
 
-			_ = vm.EnsureBootSnapshot(dir)
+			_, _ = vm.EnsureBootSnapshot(dir)
 			_ = fs.Stop(dir)
 			_ = vm.Stop(dir)
 			ui.Info(fmt.Sprintf("run %d complete: boot=%s ssh=%s rtt=%s", i+1, bootDur, sshDur, rttDur))

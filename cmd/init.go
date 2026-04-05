@@ -147,9 +147,20 @@ var initCmd = &cobra.Command{
 				return fmt.Errorf("persist resolved config: %w", err)
 			}
 		}
-		if err := vm.EnsureBootSnapshot(dir); err != nil {
+		vmWasStopped, err := vm.EnsureBootSnapshot(dir)
+		if err != nil {
 			ui.Warn("snapshot save skipped: " + err.Error())
 		}
+		
+		// Restart VM if it was stopped for snapshot
+		if vmWasStopped {
+			ui.Step("Restarting VM after snapshot")
+			if err := vm.Start(cfg, dir, port); err != nil {
+				return fmt.Errorf("restart VM after snapshot: %w", err)
+			}
+			ui.Done("VM restarted")
+		}
+		
 		ui.Done("VM ready")
 		ui.Success("Ready. Run `lenv shell` or `lenv run <cmd>`")
 		return nil
