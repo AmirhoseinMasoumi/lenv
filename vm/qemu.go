@@ -71,6 +71,9 @@ func cpuModel(accel string) string {
 	if strings.EqualFold(accel, "tcg") {
 		return "max"
 	}
+	if strings.EqualFold(accel, "whpx") {
+		return "Haswell"
+	}
 	return "host"
 }
 

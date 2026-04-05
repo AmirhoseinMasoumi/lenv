@@ -293,12 +293,15 @@ chpasswd:
     root:lenv
   expire: false
 disable_root: false
+ssh_deletekeys: false
+ssh_genkeytypes: ['rsa', 'ecdsa', 'ed25519']
 runcmd:
-  - [ sh, -lc, "mkdir -p /etc/ssh/sshd_config.d" ]
-  - [ sh, -lc, "printf 'PermitRootLogin yes\nPasswordAuthentication yes\n' > /etc/ssh/sshd_config.d/99-lenv.conf" ]
-  - [ sh, -lc, "if command -v rc-update >/dev/null 2>&1; then rc-update add sshd default || true; fi" ]
-  - [ sh, -lc, "if command -v systemctl >/dev/null 2>&1; then systemctl enable ssh || systemctl enable sshd || true; fi" ]
-  - [ sh, -lc, "if command -v service >/dev/null 2>&1; then service ssh restart || service sshd restart || true; fi" ]
+  - [ sh, -c, "mkdir -p /run/sshd" ]
+  - [ sh, -c, "mkdir -p /etc/ssh/sshd_config.d" ]
+  - [ sh, -c, "printf 'PermitRootLogin yes\nPasswordAuthentication yes\n' > /etc/ssh/sshd_config.d/99-lenv.conf" ]
+  - [ sh, -c, "ssh-keygen -A" ]
+  - [ sh, -c, "if command -v rc-update >/dev/null 2>&1; then rc-update add sshd default || true; fi" ]
+  - [ sh, -c, "if command -v systemctl >/dev/null 2>&1; then systemctl restart ssh || systemctl restart sshd || true; fi" ]
 `
 	metaData := fmt.Sprintf("instance-id: %s\nlocal-hostname: lenv\n", InstanceName(projectDir))
 
