@@ -29,13 +29,13 @@ var log = logger.WithComponent("rootfs")
 func EnsureDisk(cfg *config.Config, projectDir string) error {
 	if override := strings.TrimSpace(os.Getenv("LENV_DISK_PATH")); override != "" {
 		log.Debug("using disk override", "path", override)
-		return nil
+		return prepareFirstBootSeed(projectDir)
 	}
 
 	finalDiskPath := DiskPath(projectDir)
 	if _, err := os.Stat(finalDiskPath); err == nil {
 		log.Debug("disk already exists", "path", finalDiskPath)
-		return nil
+		return prepareFirstBootSeed(projectDir)
 	}
 
 	meta, ok := distro.Registry[cfg.Distro]
