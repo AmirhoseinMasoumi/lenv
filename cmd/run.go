@@ -68,7 +68,7 @@ func runSSHTimeout() time.Duration {
 			return time.Duration(n) * time.Second
 		}
 	}
-	return 120 * time.Second
+	return 240 * time.Second
 }
 
 func envPrefix(kvs []string) string {

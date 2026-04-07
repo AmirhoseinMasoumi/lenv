@@ -63,31 +63,7 @@ func Start(cfg *config.Config, projectDir string, sshPort int) error {
 		vmLog.Error("disk not found", "path", DiskPath(projectDir))
 		return fmt.Errorf("disk image not found at %q; set LENV_DISK_PATH to a bootable qcow2 image", DiskPath(projectDir))
 	}
-	args := BuildArgs(cfg, projectDir, sshPort)
-	vmLog.Debug("QEMU args", "args", strings.Join(args, " "))
-	cmd := exec.Command(qemu, args...)
-	if runtime.GOOS == "windows" {
-		if err := cmd.Start(); err != nil {
-			vmLog.Error("failed to start QEMU", "error", err)
-			return fmt.Errorf("start qemu: %w", err)
-		}
-		pid := cmd.Process.Pid
-		vmLog.Info("QEMU started", "pid", pid)
-		if err := os.WriteFile(PIDPath(projectDir), []byte(strconv.Itoa(pid)), 0o644); err != nil {
-			return fmt.Errorf("write qemu pid: %w", err)
-		}
-		_ = writeInstanceRecord(projectDir, cfg, sshPort, pid)
-		return nil
-	}
-	if out, err := cmd.CombinedOutput(); err != nil {
-		vmLog.Error("failed to start QEMU", "error", err, "output", string(out))
-		return fmt.Errorf("start qemu: %w (%s)", err, string(out))
-	}
-	if pid, err := readPID(projectDir); err == nil && pid > 0 {
-		vmLog.Info("QEMU started", "pid", pid)
-		_ = writeInstanceRecord(projectDir, cfg, sshPort, pid)
-	}
-	return nil
+	return startQEMU(qemu, cfg, projectDir, sshPort)
 }
 
 func Stop(projectDir string) error {

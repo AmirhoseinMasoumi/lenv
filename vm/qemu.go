@@ -22,8 +22,6 @@ func BuildArgs(cfg *config.Config, projectDir string, sshPort int) []string {
 		"-smp", strconv.Itoa(cfg.CPUs),
 		"-m", cfg.Memory,
 		"-nographic",
-		"-serial", "none",
-		"-monitor", "none",
 		"-netdev", fmt.Sprintf("user,id=net0,hostfwd=tcp:127.0.0.1:%d-:22", sshPort),
 		"-device", "virtio-net-pci,netdev=net0",
 		"-drive", fmt.Sprintf("file=%s,if=virtio,format=qcow2", DiskPath(projectDir)),

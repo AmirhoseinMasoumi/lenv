@@ -159,9 +159,19 @@ var initCmd = &cobra.Command{
 				return fmt.Errorf("restart VM after snapshot: %w", err)
 			}
 			ui.Done("VM restarted")
+			
+			// Wait for SSH after restart
+			ui.Step("Waiting for SSH")
+			sshTimeout := initSSHTimeout(cfg.Accel)
+			client, err := lssh.WaitAndConnect(port, sshTimeout)
+			if err != nil {
+				return fmt.Errorf("waiting for VM readiness after restart: %w", err)
+			}
+			client.Close()
+			ui.Done("VM ready")
+		} else {
+			ui.Done("VM ready")
 		}
-		
-		ui.Done("VM ready")
 		ui.Success("Ready. Run `lenv shell` or `lenv run <cmd>`")
 		return nil
 	},
@@ -181,7 +191,7 @@ func initSSHTimeout(_ string) time.Duration {
 			return time.Duration(n) * time.Second
 		}
 	}
-	return 120 * time.Second
+	return 240 * time.Second
 }
 
 func diffPackages(all, base []string) []string {
