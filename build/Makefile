@@ -7,6 +7,15 @@
 
 BINARY_NAME := lenv
 
+# Detect host OS to pick the right binary extension for the default `build`
+# target. GOOS-pinned targets (build-windows/linux/darwin) set their own.
+ifeq ($(OS),Windows_NT)
+    HOST_EXT := .exe
+else
+    HOST_EXT :=
+endif
+HOST_BINARY := $(BINARY_NAME)$(HOST_EXT)
+
 VERSION    := $(shell git -C .. describe --tags --always --dirty 2>/dev/null || echo dev)
 BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo unknown)
 LDFLAGS    := -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
@@ -23,7 +32,7 @@ all: build
 
 .PHONY: build
 build:
-	$(GOBUILD) $(LDFLAGS) -o ./$(BINARY_NAME) ../
+	$(GOBUILD) $(LDFLAGS) -o ./$(HOST_BINARY) ../
 
 .PHONY: build-windows
 build-windows:
@@ -70,11 +79,11 @@ clean:
 
 .PHONY: install
 install:
-	$(GOBUILD) $(LDFLAGS) -o "$(GOPATH)/bin/$(BINARY_NAME)" ../
+	$(GOBUILD) $(LDFLAGS) -o "$(GOPATH)/bin/$(HOST_BINARY)" ../
 
 .PHONY: dev
 dev:
-	$(GOBUILD) -race $(LDFLAGS) -o ./$(BINARY_NAME) ../
+	$(GOBUILD) -race $(LDFLAGS) -o ./$(HOST_BINARY) ../
 
 .PHONY: help
 help:
