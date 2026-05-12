@@ -1,13 +1,14 @@
 # Lenv Makefile
 # Lives in build/. Run from repo root via `make -C build` or from build/ via `make`.
-# All go commands run against the repo root (parent of this Makefile).
+# Uses relative paths so it works cross-platform without abspath/cd tricks.
+#   - cwd is always build/ (make -C sets it, otherwise the user is already there)
+#   - source dir is the parent (..)
+#   - output goes here (.)
 
 BINARY_NAME := lenv
-BUILD_DIR   := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-REPO_ROOT   := $(abspath $(BUILD_DIR)/..)
 
-VERSION    := $(shell cd $(REPO_ROOT) && git describe --tags --always --dirty 2>/dev/null || echo "dev")
-BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+VERSION    := $(shell git -C .. describe --tags --always --dirty 2>/dev/null || echo dev)
+BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo unknown)
 LDFLAGS    := -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
 
 GOCMD   := go
@@ -17,73 +18,63 @@ GOMOD   := $(GOCMD) mod
 GOFMT   := $(GOCMD) fmt
 GOVET   := $(GOCMD) vet
 
-GO_IN_REPO = cd $(REPO_ROOT) &&
-
 .PHONY: all
 all: build
 
 .PHONY: build
 build:
-	$(GO_IN_REPO) $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) .
+	$(GOBUILD) $(LDFLAGS) -o ./$(BINARY_NAME) ../
 
 .PHONY: build-windows
 build-windows:
-	$(GO_IN_REPO) GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME).exe .
+	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o ./$(BINARY_NAME).exe ../
 
 .PHONY: build-linux
 build-linux:
-	$(GO_IN_REPO) GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux .
+	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o ./$(BINARY_NAME)-linux ../
 
 .PHONY: build-darwin
 build-darwin:
-	$(GO_IN_REPO) GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin .
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o ./$(BINARY_NAME)-darwin ../
 
 .PHONY: build-all
 build-all: build-windows build-linux build-darwin
 
 .PHONY: test
 test:
-	$(GO_IN_REPO) $(GOTEST) -v ./...
+	$(GOTEST) -v ../...
 
 .PHONY: test-coverage
 test-coverage:
-	$(GO_IN_REPO) $(GOTEST) -v -coverprofile=$(BUILD_DIR)/coverage.out ./...
-	$(GO_IN_REPO) $(GOCMD) tool cover -html=$(BUILD_DIR)/coverage.out -o $(BUILD_DIR)/coverage.html
+	$(GOTEST) -v -coverprofile=./coverage.out ../...
+	$(GOCMD) tool cover -html=./coverage.out -o ./coverage.html
 
 .PHONY: fmt
 fmt:
-	$(GO_IN_REPO) $(GOFMT) ./...
+	$(GOFMT) ../...
 
 .PHONY: vet
 vet:
-	$(GO_IN_REPO) $(GOVET) ./...
-
-.PHONY: lint
-lint:
-	$(GO_IN_REPO) golangci-lint run
+	$(GOVET) ../...
 
 .PHONY: tidy
 tidy:
-	$(GO_IN_REPO) $(GOMOD) tidy
+	$(GOMOD) -C .. tidy
 
 .PHONY: clean
 clean:
-	rm -f $(BUILD_DIR)/$(BINARY_NAME) $(BUILD_DIR)/$(BINARY_NAME).exe \
-	      $(BUILD_DIR)/$(BINARY_NAME)-linux $(BUILD_DIR)/$(BINARY_NAME)-darwin \
-	      $(BUILD_DIR)/coverage.out $(BUILD_DIR)/coverage.html
-	rm -f $(REPO_ROOT)/$(BINARY_NAME) $(REPO_ROOT)/$(BINARY_NAME).exe
+	-rm -f ./$(BINARY_NAME) ./$(BINARY_NAME).exe
+	-rm -f ./$(BINARY_NAME)-linux ./$(BINARY_NAME)-darwin
+	-rm -f ./coverage.out ./coverage.html
+	-rm -f ../$(BINARY_NAME) ../$(BINARY_NAME).exe
 
 .PHONY: install
 install:
-	$(GO_IN_REPO) $(GOBUILD) $(LDFLAGS) -o $(GOPATH)/bin/$(BINARY_NAME) .
-
-.PHONY: run
-run: build
-	$(BUILD_DIR)/$(BINARY_NAME)
+	$(GOBUILD) $(LDFLAGS) -o "$(GOPATH)/bin/$(BINARY_NAME)" ../
 
 .PHONY: dev
 dev:
-	$(GO_IN_REPO) $(GOBUILD) -race $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) .
+	$(GOBUILD) -race $(LDFLAGS) -o ./$(BINARY_NAME) ../
 
 .PHONY: help
 help:
@@ -102,7 +93,6 @@ help:
 	@echo "  test-coverage  Run tests with coverage report"
 	@echo "  fmt            Format code"
 	@echo "  vet            Run go vet"
-	@echo "  lint           Run golangci-lint"
 	@echo "  tidy           Tidy go modules"
 	@echo "  clean          Remove build artifacts"
 	@echo "  install        Install to GOPATH/bin"
