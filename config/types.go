@@ -11,6 +11,7 @@ type EnvConfig struct {
 	Version  string   `toml:"version"`
 	CPUs     int      `toml:"cpus"`
 	Memory   string   `toml:"memory"`
+	DiskSize string   `toml:"disk_size"`
 	Profiles []string `toml:"profiles"`
 }
 
@@ -27,6 +28,7 @@ type Config struct {
 	Version           string
 	CPUs              int
 	Memory            string
+	DiskSize          string
 	Workspace         string
 	Packages          []string
 	InstalledPackages []string

@@ -58,6 +58,11 @@ func EnsureDisk(cfg *config.Config, projectDir string) error {
 		log.Error("qcow2 conversion failed", "error", err)
 		return err
 	}
+	if cfg.DiskSize != "" {
+		if err := resizeDisk(finalDiskPath, cfg.DiskSize); err != nil {
+			log.Warn("disk resize failed, continuing with original size", "error", err)
+		}
+	}
 	if err := prepareFirstBootSeed(projectDir); err != nil {
 		log.Error("seed preparation failed", "error", err)
 		return err
@@ -93,6 +98,19 @@ func ensureQcow2Disk(downloadPath, finalDiskPath string) error {
 		return fmt.Errorf("convert rootfs to qcow2: %w (%s)", err, string(out))
 	}
 	_ = os.Remove(downloadPath)
+	return nil
+}
+
+func resizeDisk(diskPath, size string) error {
+	qemuImg, err := resolveQEMUImgPath()
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(qemuImg, "resize", diskPath, size)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("resize disk to %s: %w (%s)", size, err, string(out))
+	}
+	log.Info("disk resized", "path", diskPath, "size", size)
 	return nil
 }
 
@@ -332,6 +350,8 @@ runcmd:
   - [ sh, -c, "if command -v rc-update >/dev/null 2>&1; then rc-update add sshd default || true; rc-update add local default || true; fi" ]
   - [ sh, -c, "if command -v rc-service >/dev/null 2>&1; then rc-service sshd restart || rc-service sshd start || true; rc-service local start || true; fi" ]
   - [ sh, -c, "if command -v systemctl >/dev/null 2>&1; then systemctl daemon-reload || true; systemctl enable ssh 2>/dev/null || systemctl enable sshd 2>/dev/null || true; systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null || true; systemctl enable --now lenv-ready.service 2>/dev/null || true; fi" ]
+  - [ sh, -c, "if command -v growpart >/dev/null 2>&1; then growpart /dev/vda 1 2>/dev/null || true; fi" ]
+  - [ sh, -c, "if command -v resize2fs >/dev/null 2>&1; then resize2fs /dev/vda1 2>/dev/null || true; elif command -v resize_reiserfs >/dev/null 2>&1; then resize_reiserfs /dev/vda1 2>/dev/null || true; fi" ]
   - [ sh, -c, "/usr/local/sbin/lenv-ready" ]
 `
 	metaData := fmt.Sprintf("instance-id: %s\nlocal-hostname: lenv\n", InstanceName(projectDir))

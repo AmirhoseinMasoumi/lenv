@@ -8,16 +8,17 @@ type Defaults struct {
 	Version    string
 	CPUs       int
 	Memory     string
+	DiskSize   string
 	Workspace  string
 	KernelPath string
 	PkgManager string
 }
 
 var distroDefaults = map[string]Defaults{
-	"alpine": {Version: "3.19", CPUs: 2, Memory: "2G", Workspace: "/workspace", KernelPath: "", PkgManager: "apk"},
-	"ubuntu": {Version: "24.04", CPUs: 2, Memory: "2G", Workspace: "/workspace", KernelPath: "", PkgManager: "apt"},
-	"debian": {Version: "12", CPUs: 2, Memory: "2G", Workspace: "/workspace", KernelPath: "", PkgManager: "apt"},
-	"arch":   {Version: "latest", CPUs: 2, Memory: "2G", Workspace: "/workspace", KernelPath: "", PkgManager: "pacman"},
+	"alpine": {Version: "3.19", CPUs: 2, Memory: "2G", DiskSize: "10G", Workspace: "/workspace", KernelPath: "", PkgManager: "apk"},
+	"ubuntu": {Version: "24.04", CPUs: 2, Memory: "2G", DiskSize: "20G", Workspace: "/workspace", KernelPath: "", PkgManager: "apt"},
+	"debian": {Version: "12", CPUs: 2, Memory: "2G", DiskSize: "20G", Workspace: "/workspace", KernelPath: "", PkgManager: "apt"},
+	"arch":   {Version: "latest", CPUs: 2, Memory: "2G", DiskSize: "20G", Workspace: "/workspace", KernelPath: "", PkgManager: "pacman"},
 }
 
 func Resolve(lt *LenvToml) (*Config, error) {
@@ -34,6 +35,7 @@ func Resolve(lt *LenvToml) (*Config, error) {
 		Version:    firstNonEmpty(lt.Env.Version, d.Version),
 		CPUs:       firstNonZero(lt.Env.CPUs, d.CPUs),
 		Memory:     firstNonEmpty(lt.Env.Memory, d.Memory),
+		DiskSize:   firstNonEmpty(lt.Env.DiskSize, d.DiskSize),
 		Workspace:  firstNonEmpty(lt.Mount.Workspace, d.Workspace),
 		Packages:   lt.Packages.Install,
 		Profiles:   append([]string{}, lt.Env.Profiles...),
