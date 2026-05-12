@@ -300,9 +300,29 @@ write_files:
     permissions: '0755'
     content: |
       #!/bin/sh
-      # Emitted on every boot once OpenRC has finished local services.
-      # lenv tails qemu serial output for this marker to know the VM is ready.
+      # Alpine / OpenRC: runs at end of every boot via the 'local' service.
       echo "<<<LENV_VM_READY>>>" > /dev/console 2>/dev/null || true
+  - path: /usr/local/sbin/lenv-ready
+    permissions: '0755'
+    content: |
+      #!/bin/sh
+      # Shared marker emitter used by systemd unit and OpenRC.
+      echo "<<<LENV_VM_READY>>>" > /dev/console 2>/dev/null || true
+  - path: /etc/systemd/system/lenv-ready.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Emit lenv readiness marker to console
+      After=multi-user.target network-online.target ssh.service sshd.service
+      Wants=multi-user.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/sbin/lenv-ready
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
 runcmd:
   - [ sh, -c, "echo 'root:lenv' | chpasswd" ]
   - [ sh, -c, "sed -i -E 's/^[# ]*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config; grep -q '^PermitRootLogin yes' /etc/ssh/sshd_config || echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config" ]
@@ -311,8 +331,8 @@ runcmd:
   - [ sh, -c, "ssh-keygen -A" ]
   - [ sh, -c, "if command -v rc-update >/dev/null 2>&1; then rc-update add sshd default || true; rc-update add local default || true; fi" ]
   - [ sh, -c, "if command -v rc-service >/dev/null 2>&1; then rc-service sshd restart || rc-service sshd start || true; rc-service local start || true; fi" ]
-  - [ sh, -c, "if command -v systemctl >/dev/null 2>&1; then systemctl enable ssh 2>/dev/null || systemctl enable sshd 2>/dev/null || true; systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null || true; fi" ]
-  - [ sh, -c, "echo '<<<LENV_VM_READY>>>' > /dev/console 2>/dev/null || true" ]
+  - [ sh, -c, "if command -v systemctl >/dev/null 2>&1; then systemctl daemon-reload || true; systemctl enable ssh 2>/dev/null || systemctl enable sshd 2>/dev/null || true; systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null || true; systemctl enable --now lenv-ready.service 2>/dev/null || true; fi" ]
+  - [ sh, -c, "/usr/local/sbin/lenv-ready" ]
 `
 	metaData := fmt.Sprintf("instance-id: %s\nlocal-hostname: lenv\n", InstanceName(projectDir))
 

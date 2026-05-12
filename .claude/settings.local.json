@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go vet *)",
+      "Bash(./lenv.exe --help)",
+      "Bash(./lenv.exe status *)",
+      "Bash(./lenv.exe init *)",
+      "PowerShell(Test-NetConnection *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(go run *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell($tcp = New-Object System.Net.Sockets.TcpClient; $tcp.Connect\\(\"127.0.0.1\", 3738\\); Start-Sleep -Milliseconds 500; $stream = $tcp.GetStream\\(\\); $stream.ReadTimeout = 2000; $buf = New-Object byte[] 256; try { $n = $stream.Read\\($buf, 0, 256\\); [System.Text.Encoding]::ASCII.GetString\\($buf, 0, $n\\) } catch { \"NO BANNER\" }; $tcp.Close\\(\\))",
+      "Bash(git check-ignore *)",
+      "Bash(git add *)",
+      "Bash(git rm *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(make build *)",
+      "Bash(echo \"---exit $?---\")",
+      "Read(//d/Github_Workstation/GitProjects/**)",
+      "Bash(make -C build build)",
+      "Bash(make test *)",
+      "Bash(make vet *)",
+      "Bash(make clean *)",
+      "Bash(./lenv.exe run *)"
+    ]
+  }
+}

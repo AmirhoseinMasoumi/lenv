@@ -159,6 +159,16 @@ var initCmd = &cobra.Command{
 				return fmt.Errorf("persist resolved config: %w", err)
 			}
 		}
+		// Flush guest writes before snapshotting. Stop() hard-kills QEMU,
+		// so any pending writes (sshd config, systemd unit symlinks, host
+		// keys) need to be on disk first or the snapshot captures a
+		// half-initialised state and the post-snapshot boot fails.
+		if _, sErr := lssh.Exec(client, "sync; sync; sync"); sErr != nil {
+			ui.Warn("guest sync failed before snapshot: " + sErr.Error())
+		}
+		// Close SSH explicitly before snapshot so the connection doesn't
+		// linger across the QEMU kill.
+		_ = client.Close()
 		vmWasStopped, err := vm.EnsureBootSnapshot(dir)
 		if err != nil {
 			ui.Warn("snapshot save skipped: " + err.Error())
