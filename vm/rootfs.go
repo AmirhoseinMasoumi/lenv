@@ -288,20 +288,31 @@ func prepareFirstBootSeed(projectDir string) error {
 
 	userData := `#cloud-config
 ssh_pwauth: true
-chpasswd:
-  list: |
-    root:lenv
-  expire: false
 disable_root: false
 ssh_deletekeys: false
 ssh_genkeytypes: ['rsa', 'ecdsa', 'ed25519']
+chpasswd:
+  expire: false
+  users:
+    - {name: root, password: lenv, type: text}
+write_files:
+  - path: /etc/local.d/00-lenv-ready.start
+    permissions: '0755'
+    content: |
+      #!/bin/sh
+      # Emitted on every boot once OpenRC has finished local services.
+      # lenv tails qemu serial output for this marker to know the VM is ready.
+      echo "<<<LENV_VM_READY>>>" > /dev/console 2>/dev/null || true
 runcmd:
-  - [ sh, -c, "mkdir -p /run/sshd" ]
-  - [ sh, -c, "mkdir -p /etc/ssh/sshd_config.d" ]
-  - [ sh, -c, "printf 'PermitRootLogin yes\nPasswordAuthentication yes\n' > /etc/ssh/sshd_config.d/99-lenv.conf" ]
+  - [ sh, -c, "echo 'root:lenv' | chpasswd" ]
+  - [ sh, -c, "sed -i -E 's/^[# ]*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config; grep -q '^PermitRootLogin yes' /etc/ssh/sshd_config || echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config" ]
+  - [ sh, -c, "sed -i -E 's/^[# ]*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config; grep -q '^PasswordAuthentication yes' /etc/ssh/sshd_config || echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config" ]
+  - [ sh, -c, "sed -i -E 's/^[# ]*KbdInteractiveAuthentication.*/KbdInteractiveAuthentication yes/' /etc/ssh/sshd_config || true" ]
   - [ sh, -c, "ssh-keygen -A" ]
-  - [ sh, -c, "if command -v rc-update >/dev/null 2>&1; then rc-update add sshd default || true; fi" ]
-  - [ sh, -c, "if command -v systemctl >/dev/null 2>&1; then systemctl restart ssh || systemctl restart sshd || true; fi" ]
+  - [ sh, -c, "if command -v rc-update >/dev/null 2>&1; then rc-update add sshd default || true; rc-update add local default || true; fi" ]
+  - [ sh, -c, "if command -v rc-service >/dev/null 2>&1; then rc-service sshd restart || rc-service sshd start || true; rc-service local start || true; fi" ]
+  - [ sh, -c, "if command -v systemctl >/dev/null 2>&1; then systemctl enable ssh 2>/dev/null || systemctl enable sshd 2>/dev/null || true; systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null || true; fi" ]
+  - [ sh, -c, "echo '<<<LENV_VM_READY>>>' > /dev/console 2>/dev/null || true" ]
 `
 	metaData := fmt.Sprintf("instance-id: %s\nlocal-hostname: lenv\n", InstanceName(projectDir))
 

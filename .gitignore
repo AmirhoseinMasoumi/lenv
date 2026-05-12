@@ -12,8 +12,10 @@ initramfs*
 # lenv runtime state
 .lenv/
 
-# Go build output
-build/
+# Go build output — ignore compiled binaries in build/ but keep build scripts
+build/*
+!build/Makefile
+!build/build.ps1
 lenv.exe
 lenv
 

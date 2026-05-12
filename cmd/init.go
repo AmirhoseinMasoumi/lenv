@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -124,9 +125,20 @@ var initCmd = &cobra.Command{
 		}
 		ui.Done("VM started")
 
-		ui.Step("Waiting for SSH")
 		sshTimeout := initSSHTimeout(cfg.Accel)
-		client, err := lssh.WaitAndConnect(port, sshTimeout)
+		ui.Step("Waiting for guest boot")
+		markerErr := waitForGuestBoot(dir, sshTimeout)
+		if markerErr != nil {
+			ui.Warn("readiness marker missed, falling back to SSH probe: " + markerErr.Error())
+		} else {
+			ui.Done("Guest signalled ready")
+		}
+		ui.Step("Waiting for SSH")
+		sshWait := sshTimeout
+		if markerErr == nil {
+			sshWait = 45 * time.Second
+		}
+		client, err := lssh.WaitAndConnect(port, sshWait)
 		if err != nil {
 			return fmt.Errorf("waiting for VM readiness: %w", err)
 		}
@@ -160,10 +172,20 @@ var initCmd = &cobra.Command{
 			}
 			ui.Done("VM restarted")
 			
-			// Wait for SSH after restart
+			restartTimeout := initSSHTimeout(cfg.Accel)
+			ui.Step("Waiting for guest boot")
+			markerErr2 := waitForGuestBoot(dir, restartTimeout)
+			if markerErr2 != nil {
+				ui.Warn("readiness marker missed, falling back to SSH probe: " + markerErr2.Error())
+			} else {
+				ui.Done("Guest signalled ready")
+			}
 			ui.Step("Waiting for SSH")
-			sshTimeout := initSSHTimeout(cfg.Accel)
-			client, err := lssh.WaitAndConnect(port, sshTimeout)
+			sshWait2 := restartTimeout
+			if markerErr2 == nil {
+				sshWait2 = 45 * time.Second
+			}
+			client, err := lssh.WaitAndConnect(port, sshWait2)
 			if err != nil {
 				return fmt.Errorf("waiting for VM readiness after restart: %w", err)
 			}
@@ -183,6 +205,16 @@ func init() {
 	initCmd.Flags().StringVar(&initDistro, "distro", "", "override distro for this init (alpine|ubuntu|debian|arch)")
 	initCmd.Flags().BoolVar(&saveConfig, "save", false, "write selected settings to lenv.toml")
 	initCmd.Flags().StringArrayVar(&initProfiles, "profile", nil, "activate profile(s), e.g. --profile usb --profile audio")
+}
+
+// waitForGuestBoot truncates the QEMU serial log (to ignore prior boots) and
+// waits for the readiness marker emitted by cloud-init / OpenRC local services.
+// Returns nil on success, or an error explaining why marker-based wait was
+// skipped/timed out; callers fall back to SSH probing in that case.
+func waitForGuestBoot(projectDir string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return vm.WaitForReadyMarker(ctx, projectDir, timeout)
 }
 
 func initSSHTimeout(_ string) time.Duration {

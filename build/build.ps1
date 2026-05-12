@@ -1,5 +1,9 @@
 # Lenv Build Script for Windows
-# Usage: .\build.ps1 [command]
+# Usage: .\build\build.ps1 [command]
+#
+# This script lives in build/ and writes output here. It runs `go build`
+# against the repo root (its parent directory), so it works regardless of
+# the caller's current working directory.
 
 param(
     [Parameter(Position = 0)]
@@ -8,15 +12,18 @@ param(
 )
 
 $BinaryName = "lenv"
-$BuildDir = "build"
+$BuildDir = $PSScriptRoot
+$RepoRoot = Split-Path -Parent $PSScriptRoot
 
 # Get version from git
+Push-Location $RepoRoot
 try {
     $Version = git describe --tags --always --dirty 2>$null
     if (-not $Version) { $Version = "dev" }
 } catch {
     $Version = "dev"
 }
+Pop-Location
 
 $BuildTime = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 $LdFlags = "-ldflags `"-X main.Version=$Version -X main.BuildTime=$BuildTime`""
@@ -27,17 +34,26 @@ function Write-Header {
     Write-Host "=== $Text ===" -ForegroundColor Cyan
 }
 
+function Invoke-GoBuild {
+    param([string]$Output, [string[]]$ExtraArgs = @())
+    Push-Location $RepoRoot
+    try {
+        $cmd = "go build $($ExtraArgs -join ' ') $LdFlags -o `"$Output`" ."
+        Write-Host "Running: $cmd" -ForegroundColor Gray
+        Invoke-Expression $cmd
+        return $LASTEXITCODE
+    } finally {
+        Pop-Location
+    }
+}
+
 function Build {
     Write-Header "Building lenv"
     if (-not (Test-Path $BuildDir)) {
         New-Item -ItemType Directory -Path $BuildDir -Force | Out-Null
     }
-    
-    $cmd = "go build $LdFlags -o $BuildDir/$BinaryName.exe ."
-    Write-Host "Running: $cmd" -ForegroundColor Gray
-    Invoke-Expression $cmd
-    
-    if ($LASTEXITCODE -eq 0) {
+    $rc = Invoke-GoBuild -Output (Join-Path $BuildDir "$BinaryName.exe")
+    if ($rc -eq 0) {
         Write-Host "Build successful: $BuildDir/$BinaryName.exe" -ForegroundColor Green
     } else {
         Write-Host "Build failed!" -ForegroundColor Red
@@ -50,68 +66,64 @@ function BuildAll {
     if (-not (Test-Path $BuildDir)) {
         New-Item -ItemType Directory -Path $BuildDir -Force | Out-Null
     }
-    
-    # Windows
+
     Write-Host "Building Windows..." -ForegroundColor Yellow
-    $env:GOOS = "windows"
-    $env:GOARCH = "amd64"
-    go build $LdFlags -o "$BuildDir/$BinaryName.exe" .
-    
-    # Linux
+    $env:GOOS = "windows"; $env:GOARCH = "amd64"
+    Invoke-GoBuild -Output (Join-Path $BuildDir "$BinaryName.exe") | Out-Null
+
     Write-Host "Building Linux..." -ForegroundColor Yellow
-    $env:GOOS = "linux"
-    $env:GOARCH = "amd64"
-    go build $LdFlags -o "$BuildDir/$BinaryName-linux" .
-    
-    # macOS
+    $env:GOOS = "linux"; $env:GOARCH = "amd64"
+    Invoke-GoBuild -Output (Join-Path $BuildDir "$BinaryName-linux") | Out-Null
+
     Write-Host "Building macOS..." -ForegroundColor Yellow
-    $env:GOOS = "darwin"
-    $env:GOARCH = "amd64"
-    go build $LdFlags -o "$BuildDir/$BinaryName-darwin" .
-    
-    # Reset environment
+    $env:GOOS = "darwin"; $env:GOARCH = "amd64"
+    Invoke-GoBuild -Output (Join-Path $BuildDir "$BinaryName-darwin") | Out-Null
+
     Remove-Item Env:GOOS -ErrorAction SilentlyContinue
     Remove-Item Env:GOARCH -ErrorAction SilentlyContinue
-    
+
     Write-Host "All builds complete!" -ForegroundColor Green
     Get-ChildItem $BuildDir | Format-Table Name, Length
 }
 
 function Test {
     Write-Header "Running tests"
-    go test -v ./...
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Tests failed!" -ForegroundColor Red
-        exit 1
+    Push-Location $RepoRoot
+    try {
+        go test -v ./...
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Tests failed!" -ForegroundColor Red
+            exit 1
+        }
+    } finally {
+        Pop-Location
     }
     Write-Host "All tests passed!" -ForegroundColor Green
 }
 
 function Clean {
     Write-Header "Cleaning build artifacts"
-    if (Test-Path $BuildDir) {
-        Remove-Item -Recurse -Force $BuildDir
-        Write-Host "Removed $BuildDir/" -ForegroundColor Yellow
+    Get-ChildItem -Path $BuildDir -File -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -like "$BinaryName*" -or $_.Name -like "coverage.*"
+    } | ForEach-Object {
+        Remove-Item -Force $_.FullName
+        Write-Host "Removed $($_.FullName)" -ForegroundColor Yellow
     }
-    if (Test-Path "$BinaryName.exe") {
-        Remove-Item -Force "$BinaryName.exe"
-        Write-Host "Removed $BinaryName.exe" -ForegroundColor Yellow
-    }
-    if (Test-Path $BinaryName) {
-        Remove-Item -Force $BinaryName
-        Write-Host "Removed $BinaryName" -ForegroundColor Yellow
+    foreach ($stray in @((Join-Path $RepoRoot "$BinaryName.exe"), (Join-Path $RepoRoot $BinaryName))) {
+        if (Test-Path $stray) {
+            Remove-Item -Force $stray
+            Write-Host "Removed $stray" -ForegroundColor Yellow
+        }
     }
     Write-Host "Clean complete!" -ForegroundColor Green
 }
 
 function Install {
     Write-Header "Installing to GOPATH"
-    $gopath = go env GOPATH
+    $gopath = (& go env GOPATH).Trim()
     $installPath = Join-Path $gopath "bin"
-    
-    go build $LdFlags -o "$installPath/$BinaryName.exe" .
-    
-    if ($LASTEXITCODE -eq 0) {
+    $rc = Invoke-GoBuild -Output (Join-Path $installPath "$BinaryName.exe")
+    if ($rc -eq 0) {
         Write-Host "Installed to: $installPath/$BinaryName.exe" -ForegroundColor Green
     } else {
         Write-Host "Install failed!" -ForegroundColor Red
@@ -124,10 +136,8 @@ function Dev {
     if (-not (Test-Path $BuildDir)) {
         New-Item -ItemType Directory -Path $BuildDir -Force | Out-Null
     }
-    
-    go build -race $LdFlags -o "$BuildDir/$BinaryName.exe" .
-    
-    if ($LASTEXITCODE -eq 0) {
+    $rc = Invoke-GoBuild -Output (Join-Path $BuildDir "$BinaryName.exe") -ExtraArgs @("-race")
+    if ($rc -eq 0) {
         Write-Host "Dev build successful: $BuildDir/$BinaryName.exe" -ForegroundColor Green
     } else {
         Write-Host "Build failed!" -ForegroundColor Red
@@ -139,7 +149,7 @@ function ShowHelp {
     Write-Host ""
     Write-Host "Lenv Build Script" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Usage: .\build.ps1 [command]" -ForegroundColor White
+    Write-Host "Usage: .\build\build.ps1 [command]" -ForegroundColor White
     Write-Host ""
     Write-Host "Commands:" -ForegroundColor Yellow
     Write-Host "  build      Build binary for Windows (default)"
@@ -152,7 +162,6 @@ function ShowHelp {
     Write-Host ""
 }
 
-# Execute command
 switch ($Command) {
     "build"     { Build }
     "build-all" { BuildAll }

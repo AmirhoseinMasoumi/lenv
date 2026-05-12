@@ -8,62 +8,56 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
-	"time"
 
 	"github.com/AmirhoseinMasoumi/lenv/config"
 )
 
 const (
-	CREATE_NO_WINDOW = 0x08000000
+	CREATE_NO_WINDOW  = 0x08000000
+	DETACHED_PROCESS  = 0x00000008
 )
 
 func startQEMU(qemu string, cfg *config.Config, projectDir string, sshPort int) error {
 	args := BuildArgs(cfg, projectDir, sshPort)
 	vmLog.Debug("QEMU args", "args", args)
-	
-	// Quote all arguments that might contain spaces for the batch file
-	quotedArgs := make([]string, len(args))
-	for i, arg := range args {
-		if strings.Contains(arg, " ") || strings.Contains(arg, "=") {
-			quotedArgs[i] = fmt.Sprintf(`"%s"`, arg)
-		} else {
-			quotedArgs[i] = arg
-		}
+
+	// Redirect QEMU stdio to a log file so the child does not inherit lenv's
+	// terminal handles. With -nographic, QEMU muxes serial to stdio; if those
+	// handles are the parent's terminal the guest can stall and cloud-init
+	// never finishes (sshd starts before the password is set, so auth fails).
+	logPath := filepath.Join(StateDir(projectDir), "qemu.log")
+	logFile, err := os.Create(logPath)
+	if err != nil {
+		return fmt.Errorf("create qemu log: %w", err)
 	}
-	
-	// Write a batch file to launch QEMU
-	batchPath := filepath.Join(StateDir(projectDir), "start_qemu.bat")
-	cmdLine := fmt.Sprintf(`@echo off
-start /b "" "%s" %s >nul 2>&1
-`, qemu, strings.Join(quotedArgs, " "))
-	
-	if err := os.WriteFile(batchPath, []byte(cmdLine), 0o644); err != nil {
-		return fmt.Errorf("write batch file: %w", err)
+	defer logFile.Close()
+
+	devNull, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0)
+	if err != nil {
+		return fmt.Errorf("open nul: %w", err)
 	}
-	
-	// Run the batch file with CREATE_NO_WINDOW and detached from parent
-	cmd := exec.Command(batchPath)
+	defer devNull.Close()
+
+	cmd := exec.Command(qemu, args...)
 	cmd.Dir = projectDir
+	cmd.Stdin = devNull
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: CREATE_NO_WINDOW | syscall.CREATE_NEW_PROCESS_GROUP,
+		CreationFlags: CREATE_NO_WINDOW | DETACHED_PROCESS | syscall.CREATE_NEW_PROCESS_GROUP,
+		HideWindow:    true,
 	}
-	
+
 	if err := cmd.Start(); err != nil {
 		vmLog.Error("failed to start QEMU", "error", err)
 		return fmt.Errorf("start qemu: %w", err)
 	}
-	
-	// Wait for QEMU to start and find its PID
-	time.Sleep(2 * time.Second)
-	
-	pid, err := findQEMUPid()
-	if err != nil {
-		vmLog.Warn("could not find QEMU PID", "error", err)
-		pid = 0
-	}
-	
+
+	pid := cmd.Process.Pid
+	// Release so Go does not wait for the detached process.
+	_ = cmd.Process.Release()
+
 	vmLog.Info("QEMU started", "pid", pid)
 	if err := os.WriteFile(PIDPath(projectDir), []byte(strconv.Itoa(pid)), 0o644); err != nil {
 		return err
@@ -71,22 +65,3 @@ start /b "" "%s" %s >nul 2>&1
 	_ = writeInstanceRecord(projectDir, cfg, sshPort, pid)
 	return nil
 }
-
-func findQEMUPid() (int, error) {
-	out, err := exec.Command("tasklist", "/FI", "IMAGENAME eq qemu-system-x86_64.exe", "/FO", "CSV", "/NH").Output()
-	if err != nil {
-		return 0, err
-	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	for _, line := range lines {
-		fields := strings.Split(line, ",")
-		if len(fields) >= 2 {
-			pidStr := strings.Trim(fields[1], "\" ")
-			if pid, err := strconv.Atoi(pidStr); err == nil && pid > 0 {
-				return pid, nil
-			}
-		}
-	}
-	return 0, fmt.Errorf("no QEMU process found")
-}
-
